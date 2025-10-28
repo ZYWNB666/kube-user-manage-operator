@@ -138,13 +138,13 @@ kubectl get pods -n kube-system -l app=kube-user-manage-operator
 kubectl logs -n kube-system -l app=kube-user-manage-operator -f
 
 # 验证 CRD 是否创建成功
-kubectl get crd | grep garena.com
+kubectl get crd | grep osip.cc
 ```
 
 预期输出：
 ```
-lensuser.garena.com    2024-01-01T00:00:00Z
-luconfig.garena.com    2024-01-01T00:00:00Z
+lensuser.osip.cc    2024-01-01T00:00:00Z
+luconfig.osip.cc    2024-01-01T00:00:00Z
 ```
 
 ---
@@ -165,7 +165,7 @@ luconfig.garena.com    2024-01-01T00:00:00Z
 创建一个 `my-user.yaml` 文件：
 
 ```yaml
-apiVersion: garena.com/v1
+apiVersion: osip.cc/v1
 kind: LensUser
 metadata:
   name: john.doe              # 用户名
@@ -373,7 +373,7 @@ kubectl get deployment kube-user-manage-operator -n kube-system -o jsonpath='{.s
 ```bash
 # 1. 创建用户配置文件
 cat <<EOF > developer-user.yaml
-apiVersion: garena.com/v1
+apiVersion: osip.cc/v1
 kind: LensUser
 metadata:
   name: developer

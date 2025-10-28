@@ -3,7 +3,7 @@
 
 # 模版
 ```yaml
-apiVersion: garena.com/v1
+apiVersion: osip.cc/v1
 kind: LensUser
 metadata:
   name: dev

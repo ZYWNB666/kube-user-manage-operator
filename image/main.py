@@ -43,7 +43,7 @@ def apply_crd(logger, settings, **kwargs):
 '''
 
 
-@kopf.on.create('lensuser')
+@kopf.on.create('lensuser', group='osip.cc', version='v1')
 def create_lu(spec, name, namespace, logger, **kwargs):
     roles = spec.get('roles')
     if not roles:
@@ -155,7 +155,7 @@ def create_lu(spec, name, namespace, logger, **kwargs):
     crd_api = kubernetes.client.CustomObjectsApi()
 
     crd_api.create_namespaced_custom_object(
-        group='garena.com',
+        group='osip.cc',
         version='v1',
         namespace=namespace,
         plural='luconfig',
@@ -170,7 +170,7 @@ def create_lu(spec, name, namespace, logger, **kwargs):
 '''
 
 
-@kopf.on.field('lensuser', field='spec.roles')
+@kopf.on.field('lensuser', group='osip.cc', version='v1', field='spec.roles')
 def update_lu(diff, name, namespace, logger, **kwargs):
     for op, field, old, new in diff:
         if op != "change":
@@ -246,7 +246,7 @@ def update_lu(diff, name, namespace, logger, **kwargs):
     return {'sa-name': name}
 
 
-@kopf.on.delete('lensuser')
+@kopf.on.delete('lensuser', group='osip.cc', version='v1')
 def delete_lu(spec, name, namespace, logger, **kwargs):
     roles = spec.get('roles')
     if not roles:
@@ -265,7 +265,7 @@ def delete_lu(spec, name, namespace, logger, **kwargs):
     crd_api = kubernetes.client.CustomObjectsApi()
     try:
         crd_api.delete_namespaced_custom_object(
-            group='garena.com',
+            group='osip.cc',
             version='v1',
             namespace=namespace,
             plural='luconfig',
