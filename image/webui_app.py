@@ -302,10 +302,16 @@ async def list_namespaces(current_user: User = Depends(get_current_user)):
 
 frontend_path = os.path.join(os.path.dirname(__file__), "frontend")
 if os.path.exists(frontend_path):
-    app.mount("/assets", StaticFiles(directory=frontend_path), name="static")
-    
+    # 先挂载根路径的 index.html
     @app.get("/")
     async def serve_frontend():
         """服务前端页面"""
         return FileResponse(os.path.join(frontend_path, "index.html"))
+    
+    # 然后挂载静态文件目录
+    app.mount("/assets", StaticFiles(directory=frontend_path), name="static")
+else:
+    @app.get("/")
+    async def serve_error():
+        return {"error": "Frontend files not found", "path": frontend_path}
 
