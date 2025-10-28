@@ -148,9 +148,12 @@ const app = createApp({
             loading.value = true;
             try {
                 const data = await apiRequest(`${API_BASE}/lensusers`);
-                users.value = data.data;
+                users.value = data.data || [];
+                console.log('用户列表数据:', users.value);
+                console.log('第一个用户:', users.value[0]);
             } catch (error) {
                 ElementPlus.ElMessage.error(error.message || '加载用户列表失败');
+                users.value = [];
             } finally {
                 loading.value = false;
             }
@@ -306,6 +309,7 @@ const app = createApp({
                 const data = await apiRequest(`${API_BASE}/clusterroles`);
                 clusterRoles.value = data.data || [];
                 console.log('角色列表数据:', clusterRoles.value);
+                console.log('第一个角色:', clusterRoles.value[0]);
             } catch (error) {
                 console.error('加载角色列表失败:', error);
                 ElementPlus.ElMessage.error(error.message || '加载角色列表失败');

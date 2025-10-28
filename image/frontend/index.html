@@ -54,22 +54,29 @@
                 <el-main>
                     <!-- 用户管理页面 -->
                     <div v-if="activeMenu === 'users'">
-                        <el-button type="primary" @click="showCreateUserDialog">
-                            <el-icon><Plus /></el-icon> 创建用户
-                        </el-button>
+                        <div style="margin-bottom: 20px;">
+                            <el-button type="primary" @click="showCreateUserDialog">
+                                <el-icon><Plus /></el-icon> 创建用户
+                            </el-button>
+                        </div>
                         
-                        <el-table :data="users" style="margin-top: 20px;" v-loading="loading">
-                            <el-table-column prop="metadata.name" label="用户名" width="200" />
+                        <el-table 
+                            :data="users" 
+                            v-loading="loading" 
+                            stripe 
+                            border
+                            style="width: 100%;">
+                            <el-table-column prop="metadata.name" label="用户名" width="200" show-overflow-tooltip />
                             <el-table-column prop="metadata.namespace" label="命名空间" width="150" />
                             <el-table-column label="权限" min-width="300">
                                 <template #default="scope">
                                     <el-tag v-for="role in scope.row.spec.roles" :key="role.namespace + role.name" 
-                                            size="small" style="margin-right: 5px;">
+                                            size="small" style="margin-right: 5px; margin-bottom: 5px;">
                                         {{ role.name }} @ {{ role.namespace }}
                                     </el-tag>
                                 </template>
                             </el-table-column>
-                            <el-table-column label="操作" width="300" fixed="right">
+                            <el-table-column label="操作" width="280" align="center">
                                 <template #default="scope">
                                     <el-button size="small" @click="editUser(scope.row)">编辑</el-button>
                                     <el-button size="small" @click="previewKubeconfig(scope.row)">预览配置</el-button>
@@ -81,12 +88,19 @@
 
                     <!-- 角色管理页面 -->
                     <div v-if="activeMenu === 'roles'">
-                        <el-button type="primary" @click="showCreateRoleDialog">
-                            <el-icon><Plus /></el-icon> 创建角色
-                        </el-button>
+                        <div style="margin-bottom: 20px;">
+                            <el-button type="primary" @click="showCreateRoleDialog">
+                                <el-icon><Plus /></el-icon> 创建角色
+                            </el-button>
+                        </div>
                         
-                        <el-table :data="clusterRoles" style="margin-top: 20px;" v-loading="loading" stripe>
-                            <el-table-column prop="name" label="角色名称" min-width="180" show-overflow-tooltip />
+                        <el-table 
+                            :data="clusterRoles" 
+                            v-loading="loading" 
+                            stripe 
+                            border
+                            style="width: 100%;">
+                            <el-table-column prop="name" label="角色名称" width="200" show-overflow-tooltip />
                             <el-table-column label="描述" min-width="250" show-overflow-tooltip>
                                 <template #default="scope">
                                     {{ scope.row.labels?.description || '-' }}
@@ -97,11 +111,11 @@
                                     <el-tag type="info" size="small">{{ scope.row.rules?.length || 0 }}</el-tag>
                                 </template>
                             </el-table-column>
-                            <el-table-column label="操作" width="250" fixed="right" align="center">
+                            <el-table-column label="操作" width="260" align="center">
                                 <template #default="scope">
                                     <el-button size="small" @click="viewRole(scope.row)">查看</el-button>
-                                    <el-button size="small" @click="editRole(scope.row)">编辑</el-button>
-                                    <el-button size="small" type="danger" @click="deleteRole(scope.row)">删除</el-button>
+                                    <el-button size="small" @click="editRole(scope.row)" v-if="scope.row.managed">编辑</el-button>
+                                    <el-button size="small" type="danger" @click="deleteRole(scope.row)" v-if="scope.row.managed">删除</el-button>
                                 </template>
                             </el-table-column>
                         </el-table>
@@ -155,8 +169,8 @@
             :title="userDialogTitle"
             width="600px">
             <el-form :model="userForm" label-width="100px">
-                <el-form-item label="用户名" v-if="!isEditMode">
-                    <el-input v-model="userForm.name" placeholder="example.user" />
+                <el-form-item label="用户名">
+                    <el-input v-model="userForm.name" placeholder="example.user" :disabled="isEditMode" />
                 </el-form-item>
                 <el-form-item label="权限配置">
                     <el-button size="small" @click="addRole">添加权限</el-button>
@@ -199,8 +213,8 @@
             :title="roleDialogTitle"
             width="800px">
             <el-form :model="roleForm" label-width="100px">
-                <el-form-item label="角色名称" v-if="!isEditRoleMode">
-                    <el-input v-model="roleForm.name" placeholder="my-custom-role" />
+                <el-form-item label="角色名称">
+                    <el-input v-model="roleForm.name" placeholder="my-custom-role" :disabled="isEditRoleMode" />
                 </el-form-item>
                 <el-form-item label="描述">
                     <el-input v-model="roleForm.description" placeholder="角色描述" />
