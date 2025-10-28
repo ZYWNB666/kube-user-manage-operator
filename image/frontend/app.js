@@ -40,12 +40,18 @@ const app = createApp({
         const roleForm = reactive({
             name: '',
             description: '',
-            rules: []
+            rules: [],
+            rulesYaml: ''
         });
         
         // 角色查看对话框
         const roleViewDialogVisible = ref(false);
         const viewingRole = ref({});
+        
+        // Kubeconfig 预览对话框
+        const kubeconfigPreviewVisible = ref(false);
+        const kubeconfigContent = ref('');
+        const currentDownloadUser = ref(null);
         
         // 计算属性
         const pageTitle = computed(() => {
@@ -155,7 +161,7 @@ const app = createApp({
             userDialogTitle.value = '创建用户';
             userForm.name = '';
             userForm.namespace = 'kube-system';
-            userForm.roles = [];
+            userForm.roles = [{ name: 'admin', namespace: 'kube-system' }];
             userDialogVisible.value = true;
             
             // 确保加载了角色和命名空间
@@ -245,24 +251,34 @@ const app = createApp({
             }
         };
         
-        const downloadKubeconfig = async (user) => {
+        const previewKubeconfig = async (user) => {
             try {
                 const data = await apiRequest(`${API_BASE}/lensusers/${user.metadata.name}/kubeconfig?namespace=${user.metadata.namespace}`);
                 const config = data.data;
                 
-                const yaml = jsyaml.dump(config, { indent: 2 });
-                const blob = new Blob([yaml], { type: 'application/x-yaml' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `${user.metadata.name}-kubeconfig.yaml`;
-                a.click();
-                URL.revokeObjectURL(url);
-                
-                ElementPlus.ElMessage.success('Kubeconfig 下载成功');
+                kubeconfigContent.value = jsyaml.dump(config, { indent: 2 });
+                currentDownloadUser.value = user;
+                kubeconfigPreviewVisible.value = true;
             } catch (error) {
                 ElementPlus.ElMessage.error(error.message || '获取 Kubeconfig 失败');
             }
+        };
+        
+        const downloadKubeconfig = () => {
+            if (!currentDownloadUser.value || !kubeconfigContent.value) {
+                ElementPlus.ElMessage.error('配置内容为空');
+                return;
+            }
+            
+            const blob = new Blob([kubeconfigContent.value], { type: 'application/x-yaml' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${currentDownloadUser.value.metadata.name}-kubeconfig.yaml`;
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            ElementPlus.ElMessage.success('Kubeconfig 下载成功');
         };
         
         const addRole = () => {
@@ -293,6 +309,9 @@ const app = createApp({
             roleForm.name = '';
             roleForm.description = '';
             roleForm.rules = [];
+            roleForm.rulesYaml = `- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list"]`;
             roleDialogVisible.value = true;
         };
         
@@ -307,6 +326,8 @@ const app = createApp({
             roleForm.name = role.name;
             roleForm.description = role.labels.description || '';
             roleForm.rules = JSON.parse(JSON.stringify(role.rules));
+            // 将 rules 转换为 YAML
+            roleForm.rulesYaml = jsyaml.dump(role.rules, { indent: 2 });
             roleDialogVisible.value = true;
         };
         
@@ -315,6 +336,20 @@ const app = createApp({
                 ElementPlus.ElMessage.warning('请输入角色名称');
                 return;
             }
+            
+            // 从 YAML 解析 rules
+            try {
+                const parsedRules = jsyaml.load(roleForm.rulesYaml);
+                if (!Array.isArray(parsedRules)) {
+                    ElementPlus.ElMessage.warning('权限规则必须是数组格式');
+                    return;
+                }
+                roleForm.rules = parsedRules;
+            } catch (error) {
+                ElementPlus.ElMessage.error('YAML 格式错误: ' + error.message);
+                return;
+            }
+            
             if (roleForm.rules.length === 0) {
                 ElementPlus.ElMessage.warning('请至少添加一个权限规则');
                 return;
@@ -433,6 +468,9 @@ const app = createApp({
             roleForm,
             roleViewDialogVisible,
             viewingRole,
+            kubeconfigPreviewVisible,
+            kubeconfigContent,
+            currentDownloadUser,
             pageTitle,
             handleLogin,
             handleLogout,
@@ -442,6 +480,7 @@ const app = createApp({
             editUser,
             saveUser,
             deleteUser,
+            previewKubeconfig,
             downloadKubeconfig,
             addRole,
             removeRole,

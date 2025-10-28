@@ -72,7 +72,7 @@
                             <el-table-column label="操作" width="300" fixed="right">
                                 <template #default="scope">
                                     <el-button size="small" @click="editUser(scope.row)">编辑</el-button>
-                                    <el-button size="small" @click="downloadKubeconfig(scope.row)">下载配置</el-button>
+                                    <el-button size="small" @click="previewKubeconfig(scope.row)">预览配置</el-button>
                                     <el-button size="small" type="danger" @click="deleteUser(scope.row)">删除</el-button>
                                 </template>
                             </el-table-column>
@@ -215,56 +215,17 @@
                     <el-input v-model="roleForm.description" placeholder="角色描述" />
                 </el-form-item>
                 <el-form-item label="权限规则">
-                    <el-button size="small" @click="addRule">添加规则</el-button>
-                    <div v-for="(rule, index) in roleForm.rules" :key="index" style="margin-top: 15px; padding: 15px; border: 1px solid #dcdfe6; border-radius: 4px;">
-                        <el-row :gutter="10" style="margin-bottom: 10px;">
-                            <el-col :span="20"><strong>规则 {{ index + 1 }}</strong></el-col>
-                            <el-col :span="4">
-                                <el-button type="danger" size="small" @click="removeRule(index)">删除</el-button>
-                            </el-col>
-                        </el-row>
-                        <el-row :gutter="10" style="margin-bottom: 10px;">
-                            <el-col :span="24">
-                                <label>API Groups:</label>
-                                <el-select v-model="rule.apiGroups" multiple placeholder="选择 API Groups" style="width: 100%;">
-                                    <el-option label="Core (空)" value="" />
-                                    <el-option label="apps" value="apps" />
-                                    <el-option label="batch" value="batch" />
-                                    <el-option label="extensions" value="extensions" />
-                                    <el-option label="rbac.authorization.k8s.io" value="rbac.authorization.k8s.io" />
-                                    <el-option label="* (全部)" value="*" />
-                                </el-select>
-                            </el-col>
-                        </el-row>
-                        <el-row :gutter="10" style="margin-bottom: 10px;">
-                            <el-col :span="24">
-                                <label>Resources:</label>
-                                <el-select v-model="rule.resources" multiple placeholder="选择 Resources" style="width: 100%;">
-                                    <el-option label="pods" value="pods" />
-                                    <el-option label="services" value="services" />
-                                    <el-option label="deployments" value="deployments" />
-                                    <el-option label="configmaps" value="configmaps" />
-                                    <el-option label="secrets" value="secrets" />
-                                    <el-option label="* (全部)" value="*" />
-                                </el-select>
-                            </el-col>
-                        </el-row>
-                        <el-row :gutter="10">
-                            <el-col :span="24">
-                                <label>Verbs:</label>
-                                <el-select v-model="rule.verbs" multiple placeholder="选择 Verbs" style="width: 100%;">
-                                    <el-option label="get" value="get" />
-                                    <el-option label="list" value="list" />
-                                    <el-option label="watch" value="watch" />
-                                    <el-option label="create" value="create" />
-                                    <el-option label="update" value="update" />
-                                    <el-option label="patch" value="patch" />
-                                    <el-option label="delete" value="delete" />
-                                    <el-option label="* (全部)" value="*" />
-                                </el-select>
-                            </el-col>
-                        </el-row>
+                    <div style="margin-bottom: 10px; color: #909399; font-size: 12px;">
+                        请使用 YAML 格式定义权限规则（Kubernetes RBAC Rules 格式）
                     </div>
+                    <el-input 
+                        v-model="roleForm.rulesYaml"
+                        type="textarea"
+                        :rows="15"
+                        placeholder="- apiGroups: ['']
+  resources: ['pods']
+  verbs: ['get', 'list']"
+                        style="font-family: 'Courier New', monospace; font-size: 13px;" />
                 </el-form-item>
             </el-form>
             <template #footer>
@@ -306,6 +267,20 @@
             </el-table>
             <template #footer>
                 <el-button @click="roleViewDialogVisible = false">关闭</el-button>
+            </template>
+        </el-dialog>
+
+        <!-- Kubeconfig 预览对话框 -->
+        <el-dialog v-model="kubeconfigPreviewVisible" title="预览 Kubeconfig" width="800px">
+            <el-input 
+                v-model="kubeconfigContent"
+                type="textarea"
+                :rows="20"
+                readonly
+                style="font-family: 'Courier New', monospace; font-size: 13px;" />
+            <template #footer>
+                <el-button @click="kubeconfigPreviewVisible = false">关闭</el-button>
+                <el-button type="primary" @click="downloadKubeconfig">下载配置</el-button>
             </template>
         </el-dialog>
     </div>
