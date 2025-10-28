@@ -7,21 +7,35 @@ metadata:
   labels:
     {{- include "kube-user-manager.labels" . | nindent 4 }}
 rules:
+  # 核心资源
   - apiGroups: [""]
     resources: ["serviceaccounts", "secrets", "namespaces"]
-    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
-  - apiGroups: ["rbac.authorization.k8s.io"]
-    resources: ["clusterroles", "rolebindings"]
-    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
-  - apiGroups: ["apiextensions.k8s.io"]
-    resources: ["customresourcedefinitions"]
-    verbs: ["get", "list", "watch", "create", "update", "patch"]
-  - apiGroups: ["osip.cc"]
-    resources: ["lensuser", "luconfig"]
     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
   - apiGroups: [""]
     resources: ["events"]
     verbs: ["create", "patch"]
+  # RBAC 资源
+  - apiGroups: ["rbac.authorization.k8s.io"]
+    resources: ["clusterroles", "rolebindings", "clusterrolebindings", "roles"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  # CRD 资源
+  - apiGroups: ["apiextensions.k8s.io"]
+    resources: ["customresourcedefinitions"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+  # 自定义资源
+  - apiGroups: ["osip.cc"]
+    resources: ["lensuser", "luconfig"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: ["osip.cc"]
+    resources: ["lensuser/status", "luconfig/status"]
+    verbs: ["get", "update", "patch"]
+  # Kopf 框架需要的权限
+  - apiGroups: [""]
+    resources: ["*"]
+    verbs: ["list", "watch"]
+  - apiGroups: ["*"]
+    resources: ["*"]
+    verbs: ["list", "watch"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
