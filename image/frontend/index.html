@@ -108,7 +108,11 @@
                             stripe 
                             border
                             style="width: 100%;">
-                            <el-table-column prop="name" label="角色名称" width="200" show-overflow-tooltip />
+                            <el-table-column label="角色名称" width="200" show-overflow-tooltip>
+                                <template #default="scope">
+                                    {{ scope.row.name || scope.row.metadata?.name || '-' }}
+                                </template>
+                            </el-table-column>
                             <el-table-column label="描述" min-width="250" show-overflow-tooltip>
                                 <template #default="scope">
                                     {{ scope.row.labels?.description || '-' }}

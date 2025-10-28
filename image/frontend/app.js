@@ -5,12 +5,14 @@ const API_BASE = '/api';
 const app = createApp({
     setup() {
         // 状态管理
+        const STORAGE_ACTIVE_MENU_KEY = 'activeMenu';
         const isLoggedIn = ref(false);
         const username = ref('');
         const token = ref('');
         const loading = ref(false);
         const loginLoading = ref(false);
-        const activeMenu = ref('users');
+        const savedMenu = typeof localStorage !== 'undefined' ? localStorage.getItem(STORAGE_ACTIVE_MENU_KEY) : null;
+        const activeMenu = ref(savedMenu || 'users');
         
         // 数据
         const users = ref([]);
@@ -105,6 +107,7 @@ const app = createApp({
                 isLoggedIn.value = true;
                 localStorage.setItem('token', token.value);
                 localStorage.setItem('username', username.value);
+                localStorage.setItem(STORAGE_ACTIVE_MENU_KEY, activeMenu.value);
                 
                 ElementPlus.ElMessage.success('登录成功');
                 await Promise.all([loadUsers(), loadClusterRoles(), loadNamespaces()]);
@@ -122,12 +125,14 @@ const app = createApp({
             username.value = '';
             localStorage.removeItem('token');
             localStorage.removeItem('username');
+            localStorage.removeItem(STORAGE_ACTIVE_MENU_KEY);
             ElementPlus.ElMessage.success('已退出登录');
         };
         
         // 菜单选择
         const handleMenuSelect = async (index) => {
             activeMenu.value = index;
+            localStorage.setItem(STORAGE_ACTIVE_MENU_KEY, index);
             if (index === 'users') {
                 await loadUsers();
             } else if (index === 'roles') {
@@ -459,7 +464,15 @@ const app = createApp({
                 token.value = savedToken;
                 username.value = savedUsername;
                 isLoggedIn.value = true;
-                Promise.all([loadUsers(), loadClusterRoles(), loadNamespaces()]);
+                
+                const initialLoads = [loadNamespaces()];
+                // 根据当前菜单加载对应数据，其余懒加载
+                if (activeMenu.value === 'roles') {
+                    initialLoads.push(loadClusterRoles());
+                } else {
+                    initialLoads.push(loadUsers());
+                }
+                Promise.all(initialLoads);
             }
         });
         

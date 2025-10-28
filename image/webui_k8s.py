@@ -79,12 +79,22 @@ class K8sClient:
     
     def update_lensuser(self, name: str, roles: List[Dict], namespace: str = "kube-system") -> Dict:
         """更新 LensUser"""
+        # 获取现有资源以获取 resourceVersion（k8s replace 操作必需）
+        existing = self.get_lensuser(name, namespace)
+        if not existing:
+            raise ApiException(status=404, reason=f"LensUser {name} not found in namespace {namespace}")
+        
+        resource_version = existing.get("metadata", {}).get("resourceVersion")
+        if not resource_version:
+            raise ApiException(status=400, reason="Existing LensUser missing resourceVersion, cannot update")
+        
         body = {
             "apiVersion": "osip.cc/v1",
             "kind": "LensUser",
             "metadata": {
                 "name": name,
-                "namespace": namespace
+                "namespace": namespace,
+                "resourceVersion": resource_version
             },
             "spec": {
                 "roles": roles
