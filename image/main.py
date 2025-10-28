@@ -141,7 +141,8 @@ def create_lu(spec, name, namespace, logger, **kwargs):
             raise kopf.PermanentError(f"Token secret creation failed: {e}")
     else:
         # 兼容旧版本，使用自动生成的 secret
-        sa_secret_name = sa.secrets[-1]['name']
+        # sa.secrets 是 V1ObjectReference 对象列表，需要用 .name 属性访问
+        sa_secret_name = sa.secrets[-1].name
 
     secret_info = api_client.sanitize_for_serialization(api.read_namespaced_secret(name=sa_secret_name,namespace=namespace).data)
     path = os.path.join(os.path.dirname(__file__), 'template/kube-config.yaml')

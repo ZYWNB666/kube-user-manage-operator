@@ -196,9 +196,9 @@ class K8sClient:
             "rules": rules
         }
     
-    def delete_clusterrole(self, name: str) -> Dict:
+    def delete_clusterrole(self, name: str) -> None:
         """删除 ClusterRole"""
-        return self.rbac_v1.delete_cluster_role(name)
+        self.rbac_v1.delete_cluster_role(name)
     
     # ==================== Namespace 管理 ====================
     

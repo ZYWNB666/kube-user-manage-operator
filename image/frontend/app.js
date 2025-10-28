@@ -295,9 +295,12 @@ const app = createApp({
             loading.value = true;
             try {
                 const data = await apiRequest(`${API_BASE}/clusterroles`);
-                clusterRoles.value = data.data;
+                clusterRoles.value = data.data || [];
+                console.log('角色列表数据:', clusterRoles.value);
             } catch (error) {
+                console.error('加载角色列表失败:', error);
                 ElementPlus.ElMessage.error(error.message || '加载角色列表失败');
+                clusterRoles.value = [];
             } finally {
                 loading.value = false;
             }

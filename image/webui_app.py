@@ -315,8 +315,8 @@ async def delete_clusterrole(
 ):
     """删除 ClusterRole"""
     try:
-        result = k8s_client.delete_clusterrole(name)
-        return {"success": True, "data": result, "message": "角色删除成功"}
+        k8s_client.delete_clusterrole(name)
+        return {"success": True, "message": "角色删除成功"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
