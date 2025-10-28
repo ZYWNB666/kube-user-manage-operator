@@ -183,7 +183,7 @@ def create_lu(spec, name, namespace, logger, **kwargs):
     # 检查 LuConfig 是否已存在，如果存在则更新，否则创建
     try:
         # 尝试读取现有的 LuConfig
-        crd_api.get_namespaced_custom_object(
+        existing_luconfig = crd_api.get_namespaced_custom_object(
             group='osip.cc',
             version='v1',
             namespace=namespace,
@@ -192,13 +192,21 @@ def create_lu(spec, name, namespace, logger, **kwargs):
         )
         # 如果存在，则更新
         logger.info(f"LuConfig '{name}' already exists, updating...")
+        
+        # 解析新的配置
+        new_config = yaml.safe_load(kube_config)
+        # 保留现有的 metadata（包括 resourceVersion）
+        new_config['metadata'] = existing_luconfig['metadata']
+        # 更新 spec
+        new_config['spec'] = yaml.safe_load(kube_config)['spec']
+        
         crd_api.replace_namespaced_custom_object(
             group='osip.cc',
             version='v1',
             namespace=namespace,
             plural='luconfig',
             name=name,
-            body=yaml.safe_load(kube_config)
+            body=new_config
         )
         logger.info(f"LuConfig '{name}' updated successfully")
     except ApiException as e:
