@@ -6,9 +6,9 @@ metadata:
   namespace: {{ .Values.namespace }}
   labels:
     {{- include "kube-user-manager.labels" . | nindent 4 }}
-  {{- with .Values.ingress.annotations }}
+  {{- if .Values.ingress.annotations }}
   annotations:
-    {{- toYaml . | nindent 4 }}
+    {{- toYaml .Values.ingress.annotations | nindent 4 }}
   {{- end }}
 spec:
   {{- if .Values.ingress.className }}

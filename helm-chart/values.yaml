@@ -39,9 +39,10 @@ webui:
 # Ingress 配置
 ingress:
   enabled: false
-  className: "nginx"
+  className: "nginx"  # 使用 spec.ingressClassName，不要在 annotations 中设置 kubernetes.io/ingress.class
   annotations: {}
-    # cert-manager.io/cluster-issuer: letsencrypt-prod
+    # cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    # nginx.ingress.kubernetes.io/ssl-redirect: "true"
   hosts:
     - host: kube-user-manager.example.com
       paths:
