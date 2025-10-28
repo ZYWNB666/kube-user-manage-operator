@@ -115,13 +115,20 @@ class K8sClient:
     def list_managed_clusterroles(self) -> List[Dict]:
         """列出所有 ClusterRole（包括系统内置角色）"""
         try:
-            # 先获取带标签的（用户创建的）
+            # 定义系统内置角色列表（不可编辑删除）
+            system_roles = ['admin', 'edit', 'view', 'cluster-admin', 'view-only']
+            
+            # 获取带标签的（用户创建的）
             label_selector = f"{settings.USER_MANAGER_LABEL}={settings.USER_MANAGER_LABEL_VALUE}"
             managed_result = self.rbac_v1.list_cluster_role(label_selector=label_selector)
             
             roles = []
-            # 添加用户创建的角色
+            # 添加用户创建的角色（排除系统角色）
             for item in managed_result.items:
+                # 如果是系统角色，跳过（即使被加了标签）
+                if item.metadata.name in system_roles:
+                    continue
+                    
                 roles.append({
                     "name": item.metadata.name,
                     "labels": item.metadata.labels or {},
@@ -130,20 +137,17 @@ class K8sClient:
                     "managed": True
                 })
             
-            # 添加常用的系统内置角色
-            system_roles = ['admin', 'edit', 'view', 'cluster-admin', 'view-only']
+            # 添加系统内置角色（强制标记为不可管理）
             for role_name in system_roles:
                 try:
                     role = self.rbac_v1.read_cluster_role(role_name)
-                    # 避免重复添加
-                    if not any(r['name'] == role_name for r in roles):
-                        roles.append({
-                            "name": role.metadata.name,
-                            "labels": role.metadata.labels or {},
-                            "rules": [self._rule_to_dict(rule) for rule in (role.rules or [])],
-                            "creationTimestamp": role.metadata.creation_timestamp.isoformat() if role.metadata.creation_timestamp else None,
-                            "managed": False  # 标记为系统角色
-                        })
+                    roles.append({
+                        "name": role.metadata.name,
+                        "labels": role.metadata.labels or {},
+                        "rules": [self._rule_to_dict(rule) for rule in (role.rules or [])],
+                        "creationTimestamp": role.metadata.creation_timestamp.isoformat() if role.metadata.creation_timestamp else None,
+                        "managed": False  # 系统角色强制不可管理
+                    })
                 except ApiException:
                     # 角色不存在，跳过
                     pass
