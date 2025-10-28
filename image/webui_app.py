@@ -7,7 +7,7 @@ from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, constr, validator
 import os
 
 from webui_auth import Token, User, authenticate_user, create_access_token, get_current_user
@@ -37,19 +37,34 @@ class LoginRequest(BaseModel):
     password: str
 
 
+NonEmptyStr = constr(strip_whitespace=True, min_length=1)
+
+
 class RoleItem(BaseModel):
-    name: str
-    namespace: str
+    name: NonEmptyStr
+    namespace: NonEmptyStr
 
 
 class LensUserCreate(BaseModel):
-    name: str
-    namespace: str = "kube-system"
+    name: NonEmptyStr
+    namespace: NonEmptyStr = "kube-system"
     roles: List[RoleItem]
+
+    @validator("roles")
+    def validate_roles(cls, roles):
+        if not roles:
+            raise ValueError("角色列表不能为空")
+        return roles
 
 
 class LensUserUpdate(BaseModel):
     roles: List[RoleItem]
+
+    @validator("roles")
+    def validate_roles(cls, roles):
+        if not roles:
+            raise ValueError("角色列表不能为空")
+        return roles
 
 
 class PolicyRule(BaseModel):

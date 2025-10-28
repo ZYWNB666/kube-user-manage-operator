@@ -203,7 +203,12 @@ const app = createApp({
                 return;
             }
             if (userForm.roles.length === 0) {
-                ElementPlus.ElMessage.warning('请至少添加一个权限');
+                ElementPlus.ElMessage.warning('请至少添加一个权限角色');
+                return;
+            }
+            const invalidRole = userForm.roles.find(role => !role.name || !role.namespace);
+            if (invalidRole) {
+                ElementPlus.ElMessage.warning('请确保每个权限条目的角色与命名空间均已填写');
                 return;
             }
             
@@ -299,7 +304,8 @@ const app = createApp({
         };
         
         const addRole = () => {
-            userForm.roles.push({ name: '', namespace: '' });
+            const defaultNamespace = userForm.namespace || (namespaces.value && namespaces.value[0]) || '';
+            userForm.roles.push({ name: '', namespace: defaultNamespace });
         };
         
         const removeRole = (index) => {
