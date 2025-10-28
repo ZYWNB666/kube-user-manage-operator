@@ -66,8 +66,16 @@
                             stripe 
                             border
                             style="width: 100%;">
-                            <el-table-column prop="metadata.name" label="用户名" width="200" show-overflow-tooltip />
-                            <el-table-column prop="metadata.namespace" label="命名空间" width="150" />
+                            <el-table-column label="用户名" width="200" show-overflow-tooltip>
+                                <template #default="scope">
+                                    {{ (scope.row.metadata && scope.row.metadata.name) || '-' }}
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="命名空间" width="150">
+                                <template #default="scope">
+                                    {{ (scope.row.metadata && scope.row.metadata.namespace) || '-' }}
+                                </template>
+                            </el-table-column>
                             <el-table-column label="权限" min-width="300">
                                 <template #default="scope">
                                     <el-tag v-for="role in scope.row.spec.roles" :key="role.namespace + role.name" 
