@@ -1,5 +1,4 @@
 const { createApp, ref, reactive, computed, onMounted } = Vue;
-const ElementPlusIconsVue = ElementPlusIconsVue;
 
 const API_BASE = '/api';
 
@@ -458,8 +457,10 @@ const app = createApp({
 });
 
 // 注册 Element Plus 图标
-for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
-    app.component(key, component);
+if (typeof ElementPlusIconsVue !== 'undefined') {
+    for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
+        app.component(key, component);
+    }
 }
 
 app.use(ElementPlus);
