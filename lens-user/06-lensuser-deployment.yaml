@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kube-user-manage-operator
+  namespace: kube-system
+  generation: 4
+  labels:
+    app: kube-user-manage
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kube-user-manage
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: kube-user-manage
+    spec:
+      containers:
+        - name: operator
+          image: harbor.web.garenanow.com/library/kube-user-manage-operator:54d0b5ae
+          env:
+            - name: cluster_name
+              value: backend-k8s-sg
+            - name: kube_api_url
+              value: https://202.81.96.14:6443
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          imagePullPolicy: IfNotPresent
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30
+      dnsPolicy: ClusterFirst
+      serviceAccountName: gre-admin
+      serviceAccount: gre-admin
+      securityContext: {}
+      schedulerName: default-scheduler
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 25%
+      maxSurge: 25%
+  revisionHistoryLimit: 10
+  progressDeadlineSeconds: 600

@@ -19,4 +19,4 @@ spec:
       serviceAccountName: gre-admin
       containers:
       - name: operator
-        image: "harbor.web.garenanow.com/library/kube-user-manage-operator:latest"
+        image: "kube-user-manage-operator:latest"

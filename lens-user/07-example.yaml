@@ -1,0 +1,13 @@
+apiVersion: garena.com/v1
+kind: LensUser
+metadata:
+  name: test.user
+  namespace: kube-system
+spec:
+  roles:
+    - name: admin
+      namespace: default
+    - name: view-only
+      namespace: kube-system
+    - name: view-only
+      namespace: lens-metrics
