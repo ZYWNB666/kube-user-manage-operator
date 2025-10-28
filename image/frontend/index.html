@@ -39,8 +39,8 @@
                 <el-header style="display: flex; justify-content: space-between; align-items: center; background-color: #fff; border-bottom: 1px solid #e6e6e6;">
                     <h2 style="margin: 0;">{{ pageTitle }}</h2>
                     <el-dropdown @command="handleCommand">
-                        <span style="cursor: pointer;">
-                            {{ username }} <el-icon><ArrowDown /></el-icon>
+                        <span style="cursor: pointer; display: flex; align-items: center;">
+                            {{ username }} <el-icon style="margin-left: 5px;"><arrow-down /></el-icon>
                         </span>
                         <template #dropdown>
                             <el-dropdown-menu>

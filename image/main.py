@@ -144,7 +144,14 @@ def create_lu(spec, name, namespace, logger, **kwargs):
         # sa.secrets 是 V1ObjectReference 对象列表，需要用 .name 属性访问
         sa_secret_name = sa.secrets[-1].name
 
-    secret_info = api_client.sanitize_for_serialization(api.read_namespaced_secret(name=sa_secret_name,namespace=namespace).data)
+    # 读取 Secret 数据
+    secret = api.read_namespaced_secret(name=sa_secret_name, namespace=namespace)
+    secret_info = api_client.sanitize_for_serialization(secret.data)
+    
+    if not secret_info:
+        logger.error(f"Secret '{sa_secret_name}' data is None or empty")
+        raise kopf.PermanentError(f"Secret data is empty for '{sa_secret_name}'")
+    
     path = os.path.join(os.path.dirname(__file__), 'template/kube-config.yaml')
     tmpl = open(path, 'rt').read()
     kube_config = tmpl.format(

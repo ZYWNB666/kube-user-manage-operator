@@ -241,6 +241,15 @@ const app = createApp({
                     method: 'DELETE'
                 });
                 ElementPlus.ElMessage.success('用户删除成功');
+                // 立即从列表中移除
+                const index = users.value.findIndex(u => 
+                    u.metadata.name === user.metadata.name && 
+                    u.metadata.namespace === user.metadata.namespace
+                );
+                if (index > -1) {
+                    users.value.splice(index, 1);
+                }
+                // 重新加载确保同步
                 await loadUsers();
             } catch (error) {
                 if (error !== 'cancel') {
