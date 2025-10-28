@@ -1,12 +1,12 @@
 # Helm Chart 配置文件
 
-# Operator 配置
+# 统一配置（Operator + Web UI）
 operator:
   enabled: true
   replicas: 1
   image:
-    repository: your-registry.com/kube-user-manage-operator
-    tag: "2.0.0"
+    repository: kaifa6599/kube-user-manage-operator
+    tag: "v1.0"
     pullPolicy: IfNotPresent
   
   resources:
@@ -24,25 +24,11 @@ operator:
 
 # Web UI 配置
 webui:
-  enabled: true
-  replicas: 1
-  image:
-    repository: your-registry.com/kube-user-manager-webui
-    tag: "2.0.0"
-    pullPolicy: IfNotPresent
+  enabled: true  # 保留此开关用于控制 Service 和 Ingress
   
   service:
     type: ClusterIP
     port: 8080
-    targetPort: 8080
-  
-  resources:
-    limits:
-      cpu: 500m
-      memory: 512Mi
-    requests:
-      cpu: 100m
-      memory: 128Mi
   
   # 管理员账号配置
   auth:

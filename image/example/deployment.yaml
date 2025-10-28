@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kube-user-manage-operator
+  namespace: kube-system
+  labels:
+    app: kube-user-manage
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kube-user-manage
+  template:
+    metadata:
+      labels:
+        app: kube-user-manage
+    spec:
+      # 必须使用有相关权限的账号
+      serviceAccountName: gre-admin
+      containers:
+      - name: operator
+        image: "kube-user-manage-operator:latest"

@@ -63,21 +63,24 @@ Operator 监听事件
 
 ### 方式一：Helm 快速部署（推荐）⭐
 
-使用 Helm Chart 一键部署完整系统（包括 Operator 和 Web UI）：
+使用 Helm Chart 一键部署完整系统（单镜像包含 Operator + Web UI）：
 
 ```bash
-# 1. 修改配置
-vim helm-chart/values.yaml
+# 1. 构建镜像
+docker build -t your-registry.com/kube-user-manage-operator:2.0.0 -f image/Dockerfile image/
+docker push your-registry.com/kube-user-manage-operator:2.0.0
 
 # 2. 安装
 helm install kube-user-manager ./helm-chart \
   --namespace kube-system \
+  --set operator.image.repository=your-registry.com/kube-user-manage-operator \
+  --set operator.image.tag=2.0.0 \
   --set webui.auth.adminPassword=YourPassword \
   --set operator.cluster.name=your-cluster \
   --set operator.cluster.apiUrl=https://your-api-server:6443
 
 # 3. 访问 Web 界面
-kubectl port-forward -n kube-system svc/kube-user-manager-webui 8080:8080
+kubectl port-forward -n kube-system svc/kube-user-manager 8080:8080
 ```
 
 访问 http://localhost:8080，使用 admin/YourPassword 登录。

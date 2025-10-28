@@ -1,0 +1,4 @@
+apiVersion: kopf.dev/v1
+kind: ClusterKopfPeering
+metadata:
+  name: kube-user-manage

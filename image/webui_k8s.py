@@ -2,7 +2,7 @@ from typing import List, Dict, Optional
 from kubernetes import client, config
 from kubernetes.client.rest import ApiException
 import yaml
-from config import settings
+from webui_config import settings
 
 
 class K8sClient:

@@ -16,8 +16,8 @@ class Settings(BaseSettings):
     ADMIN_PASSWORD: str = os.getenv("ADMIN_PASSWORD", "admin123")
     
     # K8s 配置
-    CLUSTER_NAME: str = os.getenv("CLUSTER_NAME", "kubernetes")
-    KUBE_API_URL: str = os.getenv("KUBE_API_URL", "https://kubernetes.default.svc")
+    CLUSTER_NAME: str = os.getenv("cluster_name", "kubernetes")
+    KUBE_API_URL: str = os.getenv("kube_api_url", "https://kubernetes.default.svc")
     
     # UserManager 标签
     USER_MANAGER_LABEL: str = "usermanager.osip.cc/managed"

@@ -1,14 +1,18 @@
+"""
+Web UI 应用 - 集成到 Operator 中
+"""
 from datetime import timedelta
-from typing import List, Optional
+from typing import List
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
-from auth import Token, User, authenticate_user, create_access_token, get_current_user
-from k8s_client import k8s_client
-from config import settings
 import os
+
+from webui_auth import Token, User, authenticate_user, create_access_token, get_current_user
+from webui_k8s import k8s_client
+from webui_config import settings
 
 app = FastAPI(
     title="Kube User Manager",
@@ -132,7 +136,6 @@ async def create_lensuser(
 ):
     """创建用户"""
     try:
-        # 检查用户是否已存在
         existing = k8s_client.get_lensuser(request.name, request.namespace)
         if existing:
             raise HTTPException(status_code=400, detail="用户已存在")
@@ -155,7 +158,6 @@ async def update_lensuser(
 ):
     """更新用户权限"""
     try:
-        # 检查用户是否存在
         existing = k8s_client.get_lensuser(name, namespace)
         if not existing:
             raise HTTPException(status_code=404, detail="用户不存在")
@@ -237,7 +239,6 @@ async def create_clusterrole(
 ):
     """创建 ClusterRole"""
     try:
-        # 检查角色是否已存在
         existing = k8s_client.get_clusterrole(request.name)
         if existing:
             raise HTTPException(status_code=400, detail="角色已存在")
@@ -259,7 +260,6 @@ async def update_clusterrole(
 ):
     """更新 ClusterRole"""
     try:
-        # 检查角色是否存在
         existing = k8s_client.get_clusterrole(name)
         if not existing:
             raise HTTPException(status_code=404, detail="角色不存在")
@@ -300,8 +300,7 @@ async def list_namespaces(current_user: User = Depends(get_current_user)):
 
 # ==================== 静态文件服务 ====================
 
-# 挂载前端静态文件
-frontend_path = os.path.join(os.path.dirname(__file__), "../frontend")
+frontend_path = os.path.join(os.path.dirname(__file__), "frontend")
 if os.path.exists(frontend_path):
     app.mount("/assets", StaticFiles(directory=frontend_path), name="static")
     
@@ -309,9 +308,4 @@ if os.path.exists(frontend_path):
     async def serve_frontend():
         """服务前端页面"""
         return FileResponse(os.path.join(frontend_path, "index.html"))
-
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8080)
 

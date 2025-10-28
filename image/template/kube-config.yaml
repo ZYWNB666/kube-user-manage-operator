@@ -1,0 +1,30 @@
+################################################################################
+################################################################################
+################################################################################
+apiVersion: osip.cc/v1
+kind: LuConfig
+metadata:
+  name: {user_name}
+  namespace: {namespace}
+spec:
+  apiVersion: v1
+  kind: Config
+  current-context: {user_name}@{cluster_name}
+  clusters:
+    - name: {cluster_name}
+      cluster:
+        certificate-authority-data: {ca}
+        server: '{api_url}'
+        insecure-skip-tls-verify: false
+  contexts:
+    - name: {user_name}@{cluster_name}
+      context:
+        cluster: {cluster_name}
+        user: {user_name}
+  users:
+    - name: {user_name}
+      user:
+        token: {token}
+################################################################################
+################################################################################
+################################################################################

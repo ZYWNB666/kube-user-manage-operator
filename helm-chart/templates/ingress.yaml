@@ -34,7 +34,7 @@ spec:
             pathType: {{ .pathType }}
             backend:
               service:
-                name: {{ include "kube-user-manager.fullname" $ }}-webui
+                name: {{ include "kube-user-manager.fullname" $ }}
                 port:
                   number: {{ $.Values.webui.service.port }}
           {{- end }}

@@ -2,33 +2,40 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "kube-user-manager.fullname" . }}-operator
+  name: {{ include "kube-user-manager.fullname" . }}
   namespace: {{ .Values.namespace }}
   labels:
     {{- include "kube-user-manager.labels" . | nindent 4 }}
-    app.kubernetes.io/component: operator
 spec:
   replicas: {{ .Values.operator.replicas }}
   selector:
     matchLabels:
       {{- include "kube-user-manager.selectorLabels" . | nindent 6 }}
-      app.kubernetes.io/component: operator
   template:
     metadata:
       labels:
         {{- include "kube-user-manager.selectorLabels" . | nindent 8 }}
-        app.kubernetes.io/component: operator
     spec:
       serviceAccountName: {{ include "kube-user-manager.serviceAccountName" . }}
       containers:
-        - name: operator
+        - name: kube-user-manager
           image: "{{ .Values.operator.image.repository }}:{{ .Values.operator.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.operator.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
           env:
             - name: cluster_name
               value: {{ .Values.operator.cluster.name | quote }}
             - name: kube_api_url
               value: {{ .Values.operator.cluster.apiUrl | quote }}
+            - name: SECRET_KEY
+              value: {{ .Values.webui.auth.secretKey | quote }}
+            - name: ADMIN_USERNAME
+              value: {{ .Values.webui.auth.adminUsername | quote }}
+            - name: ADMIN_PASSWORD
+              value: {{ .Values.webui.auth.adminPassword | quote }}
           resources:
             {{- toYaml .Values.operator.resources | nindent 12 }}
       {{- with .Values.nodeSelector }}

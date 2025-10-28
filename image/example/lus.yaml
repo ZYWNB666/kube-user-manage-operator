@@ -1,0 +1,10 @@
+apiVersion: osip.cc/v1
+kind: LensUser
+metadata:
+  name: yuzhu.wang
+spec:
+  roles:
+    - name: view-only
+      namespace: mezcal
+    - name: view-only
+      namespace: mezcal-sb
