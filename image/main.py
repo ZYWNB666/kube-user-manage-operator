@@ -61,11 +61,13 @@ def create_lu(spec, name, namespace, logger, **kwargs):
             namespace=namespace,
             body=data,
         )
+        logger.info(f"ServiceAccount '{name}' created successfully in namespace '{namespace}'")
     except ApiException as e:
         if e.reason == "Conflict":
-            logger.info("%s\n" % e.body)
+            logger.info(f"ServiceAccount '{name}' already exists, continuing...")
         else:
-            raise kopf.PermanentError(f"service account create failed. name {roles!r}.")
+            logger.error(f"Failed to create ServiceAccount: {e.reason} - {e.body}")
+            raise kopf.PermanentError(f"ServiceAccount create failed: {e.reason} - {e.body}")
 
     api = kubernetes.client.RbacAuthorizationV1Api()
     for role in roles:
@@ -79,11 +81,13 @@ def create_lu(spec, name, namespace, logger, **kwargs):
                 namespace=role.get('namespace'),
                 body=data,
             )
+            logger.info(f"RoleBinding '{name}' created in namespace '{role.get('namespace')}' for role '{role.get('name')}'")
         except ApiException as e:
             if e.reason == "Conflict":
-                logger.info("%s\n" % e.body)
+                logger.info(f"RoleBinding '{name}' already exists in namespace '{role.get('namespace')}', continuing...")
             else:
-                raise kopf.PermanentError(f"service account create failed. name {roles!r}.")
+                logger.error(f"Failed to create RoleBinding: {e.reason} - {e.body}")
+                raise kopf.PermanentError(f"RoleBinding create failed for role '{role.get('name')}': {e.reason} - {e.body}")
 
     api = kubernetes.client.CoreV1Api()
     api_client = kubernetes.client.ApiClient()
