@@ -14,10 +14,15 @@ rules:
   - apiGroups: [""]
     resources: ["events"]
     verbs: ["create", "patch"]
-  # RBAC 资源
+  # RBAC 资源 - 需要escalate权限来创建/更新任何ClusterRole
   - apiGroups: ["rbac.authorization.k8s.io"]
     resources: ["clusterroles", "rolebindings", "clusterrolebindings", "roles"]
     verbs: ["get", "list", "watch", "create", "update", "patch", "delete", "bind", "escalate"]
+  # 为了能够通过rolebinding授予权限，operator需要拥有所有可能被授予的权限
+  # 或者使用escalate权限（但escalate需要搭配实际权限才能工作）
+  - apiGroups: ["*"]
+    resources: ["*"]
+    verbs: ["*"]
   # CRD 资源
   - apiGroups: ["apiextensions.k8s.io"]
     resources: ["customresourcedefinitions"]
@@ -29,13 +34,6 @@ rules:
   - apiGroups: ["osip.cc"]
     resources: ["lensuser/status", "luconfig/status"]
     verbs: ["get", "update", "patch"]
-  # Kopf 框架需要的权限
-  - apiGroups: [""]
-    resources: ["*"]
-    verbs: ["list", "watch"]
-  - apiGroups: ["*"]
-    resources: ["*"]
-    verbs: ["list", "watch"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding

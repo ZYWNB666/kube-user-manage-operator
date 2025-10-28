@@ -193,9 +193,32 @@ async def get_user_kubeconfig(
 ):
     """获取用户的 kubeconfig"""
     try:
+        # 首先检查用户是否存在
+        user = k8s_client.get_lensuser(name, namespace)
+        if not user:
+            raise HTTPException(status_code=404, detail="用户不存在")
+        
+        # 检查用户状态
+        status = user.get("status", {})
+        kopf_status = status.get("kopf", {})
+        progress = kopf_status.get("progress", {})
+        
+        # 检查是否有创建失败的记录
+        for key, value in progress.items():
+            if isinstance(value, dict) and value.get("failure"):
+                error_msg = value.get("message", "创建失败")
+                raise HTTPException(
+                    status_code=500, 
+                    detail=f"用户创建失败: {error_msg}。请检查 Operator 权限配置或联系管理员。"
+                )
+        
+        # 获取配置
         luconfig = k8s_client.get_luconfig(name, namespace)
         if not luconfig:
-            raise HTTPException(status_code=404, detail="Kubeconfig 不存在，请等待 Operator 生成")
+            raise HTTPException(
+                status_code=404, 
+                detail="Kubeconfig 配置尚未生成，请稍后再试。如果长时间未生成，请检查 Operator 日志。"
+            )
         return {"success": True, "data": luconfig.get("spec", {})}
     except HTTPException:
         raise
@@ -249,7 +272,13 @@ async def create_clusterrole(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        error_msg = str(e)
+        if "is forbidden" in error_msg and "attempting to grant RBAC permissions" in error_msg:
+            raise HTTPException(
+                status_code=500, 
+                detail="权限不足：Operator 没有足够的权限创建此角色。请重新部署 Helm Chart 以更新权限：helm upgrade kube-user-manager ./helm-chart -n kube-system"
+            )
+        raise HTTPException(status_code=500, detail=error_msg)
 
 
 @app.put("/api/clusterroles/{name}", tags=["角色管理"])
@@ -270,7 +299,13 @@ async def update_clusterrole(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        error_msg = str(e)
+        if "is forbidden" in error_msg and "attempting to grant RBAC permissions" in error_msg:
+            raise HTTPException(
+                status_code=500, 
+                detail="权限不足：Operator 没有足够的权限更新此角色。请重新部署 Helm Chart 以更新权限：helm upgrade kube-user-manager ./helm-chart -n kube-system"
+            )
+        raise HTTPException(status_code=500, detail=error_msg)
 
 
 @app.delete("/api/clusterroles/{name}", tags=["角色管理"])

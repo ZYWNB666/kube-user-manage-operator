@@ -158,15 +158,6 @@
                 <el-form-item label="用户名" v-if="!isEditMode">
                     <el-input v-model="userForm.name" placeholder="example.user" />
                 </el-form-item>
-                <el-form-item label="命名空间" v-if="!isEditMode">
-                    <el-select v-model="userForm.namespace" placeholder="选择命名空间" style="width: 100%;">
-                        <el-option 
-                            v-for="ns in namespaces" 
-                            :key="ns" 
-                            :label="ns" 
-                            :value="ns" />
-                    </el-select>
-                </el-form-item>
                 <el-form-item label="权限配置">
                     <el-button size="small" @click="addRole">添加权限</el-button>
                     <div v-for="(role, index) in userForm.roles" :key="index" style="margin-top: 10px;">
