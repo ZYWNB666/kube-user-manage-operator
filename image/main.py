@@ -180,13 +180,42 @@ def create_lu(spec, name, namespace, logger, **kwargs):
 
     crd_api = kubernetes.client.CustomObjectsApi()
 
-    crd_api.create_namespaced_custom_object(
-        group='osip.cc',
-        version='v1',
-        namespace=namespace,
-        plural='luconfig',
-        body=yaml.safe_load(kube_config)
-    )
+    # 检查 LuConfig 是否已存在，如果存在则更新，否则创建
+    try:
+        # 尝试读取现有的 LuConfig
+        crd_api.get_namespaced_custom_object(
+            group='osip.cc',
+            version='v1',
+            namespace=namespace,
+            plural='luconfig',
+            name=name
+        )
+        # 如果存在，则更新
+        logger.info(f"LuConfig '{name}' already exists, updating...")
+        crd_api.replace_namespaced_custom_object(
+            group='osip.cc',
+            version='v1',
+            namespace=namespace,
+            plural='luconfig',
+            name=name,
+            body=yaml.safe_load(kube_config)
+        )
+        logger.info(f"LuConfig '{name}' updated successfully")
+    except ApiException as e:
+        if e.status == 404:
+            # 不存在，则创建
+            logger.info(f"LuConfig '{name}' does not exist, creating...")
+            crd_api.create_namespaced_custom_object(
+                group='osip.cc',
+                version='v1',
+                namespace=namespace,
+                plural='luconfig',
+                body=yaml.safe_load(kube_config)
+            )
+            logger.info(f"LuConfig '{name}' created successfully")
+        else:
+            logger.error(f"Failed to manage LuConfig: {e.reason} - {e.body}")
+            raise kopf.PermanentError(f"LuConfig management failed: {e.reason}")
 
     return {'sa-name': name}
 

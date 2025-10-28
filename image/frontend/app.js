@@ -1,4 +1,4 @@
-const { createApp, ref, reactive, computed, onMounted } = Vue;
+﻿const { createApp, ref, reactive, computed, onMounted } = Vue;
 
 const API_BASE = '/api';
 
@@ -287,20 +287,31 @@ const app = createApp({
         };
         
         const downloadKubeconfig = () => {
-            if (!currentDownloadUser.value || !kubeconfigContent.value) {
+            if (!kubeconfigContent.value) {
                 ElementPlus.ElMessage.error('配置内容为空');
                 return;
+            }
+            
+            // 从 kubeconfig 内容中解析 current-context 作为文件名
+            let filename = 'kubeconfig.yaml';
+            try {
+                const config = jsyaml.load(kubeconfigContent.value);
+                if (config && config['current-context']) {
+                    filename = `${config['current-context']}.yaml`;
+                }
+            } catch (error) {
+                console.warn('解析 kubeconfig 失败，使用默认文件名', error);
             }
             
             const blob = new Blob([kubeconfigContent.value], { type: 'application/x-yaml' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `${currentDownloadUser.value.metadata.name}-kubeconfig.yaml`;
+            a.download = filename;
             a.click();
             URL.revokeObjectURL(url);
             
-            ElementPlus.ElMessage.success('Kubeconfig 下载成功');
+            ElementPlus.ElMessage.success(`配置文件已下载为: ${filename}`);
         };
         
         const addRole = () => {
