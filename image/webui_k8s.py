@@ -113,19 +113,41 @@ class K8sClient:
     # ==================== ClusterRole 管理 ====================
     
     def list_managed_clusterroles(self) -> List[Dict]:
-        """列出所有带 UserManager 标签的 ClusterRole"""
+        """列出所有 ClusterRole（包括系统内置角色）"""
         try:
+            # 先获取带标签的（用户创建的）
             label_selector = f"{settings.USER_MANAGER_LABEL}={settings.USER_MANAGER_LABEL_VALUE}"
-            result = self.rbac_v1.list_cluster_role(label_selector=label_selector)
+            managed_result = self.rbac_v1.list_cluster_role(label_selector=label_selector)
             
             roles = []
-            for item in result.items:
+            # 添加用户创建的角色
+            for item in managed_result.items:
                 roles.append({
                     "name": item.metadata.name,
                     "labels": item.metadata.labels or {},
                     "rules": [self._rule_to_dict(rule) for rule in (item.rules or [])],
-                    "creationTimestamp": item.metadata.creation_timestamp.isoformat() if item.metadata.creation_timestamp else None
+                    "creationTimestamp": item.metadata.creation_timestamp.isoformat() if item.metadata.creation_timestamp else None,
+                    "managed": True
                 })
+            
+            # 添加常用的系统内置角色
+            system_roles = ['admin', 'edit', 'view', 'cluster-admin', 'view-only']
+            for role_name in system_roles:
+                try:
+                    role = self.rbac_v1.read_cluster_role(role_name)
+                    # 避免重复添加
+                    if not any(r['name'] == role_name for r in roles):
+                        roles.append({
+                            "name": role.metadata.name,
+                            "labels": role.metadata.labels or {},
+                            "rules": [self._rule_to_dict(rule) for rule in (role.rules or [])],
+                            "creationTimestamp": role.metadata.creation_timestamp.isoformat() if role.metadata.creation_timestamp else None,
+                            "managed": False  # 标记为系统角色
+                        })
+                except ApiException:
+                    # 角色不存在，跳过
+                    pass
+            
             return roles
         except ApiException as e:
             if e.status == 404:

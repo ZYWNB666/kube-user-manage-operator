@@ -144,13 +144,27 @@ def create_lu(spec, name, namespace, logger, **kwargs):
         # sa.secrets 是 V1ObjectReference 对象列表，需要用 .name 属性访问
         sa_secret_name = sa.secrets[-1].name
 
-    # 读取 Secret 数据
-    secret = api.read_namespaced_secret(name=sa_secret_name, namespace=namespace)
-    secret_info = api_client.sanitize_for_serialization(secret.data)
+    # 等待 Secret 的 token 数据生成（最多等待30秒）
+    import time
+    max_wait = 30
+    waited = 0
+    secret_info = None
     
-    if not secret_info:
-        logger.error(f"Secret '{sa_secret_name}' data is None or empty")
-        raise kopf.PermanentError(f"Secret data is empty for '{sa_secret_name}'")
+    while waited < max_wait:
+        secret = api.read_namespaced_secret(name=sa_secret_name, namespace=namespace)
+        secret_info = api_client.sanitize_for_serialization(secret.data)
+        
+        if secret_info and secret_info.get('token'):
+            logger.info(f"Secret '{sa_secret_name}' token generated after {waited} seconds")
+            break
+        
+        logger.info(f"Waiting for Secret '{sa_secret_name}' token to be generated... ({waited}/{max_wait}s)")
+        time.sleep(2)
+        waited += 2
+    
+    if not secret_info or not secret_info.get('token'):
+        logger.error(f"Secret '{sa_secret_name}' token not generated after {max_wait} seconds")
+        raise kopf.PermanentError(f"Secret token not generated for '{sa_secret_name}' after {max_wait}s. Check token-controller logs.")
     
     path = os.path.join(os.path.dirname(__file__), 'template/kube-config.yaml')
     tmpl = open(path, 'rt').read()
