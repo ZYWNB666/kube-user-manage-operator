@@ -1,0 +1,21 @@
+{{- if .Values.webui.enabled -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "kube-user-manager.fullname" . }}-webui
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "kube-user-manager.labels" . | nindent 4 }}
+    app.kubernetes.io/component: webui
+spec:
+  type: {{ .Values.webui.service.type }}
+  ports:
+    - port: {{ .Values.webui.service.port }}
+      targetPort: {{ .Values.webui.service.targetPort }}
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "kube-user-manager.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: webui
+{{- end }}
+

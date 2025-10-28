@@ -1,0 +1,110 @@
+# Helm Chart 配置文件
+
+# Operator 配置
+operator:
+  enabled: true
+  replicas: 1
+  image:
+    repository: your-registry.com/kube-user-manage-operator
+    tag: "2.0.0"
+    pullPolicy: IfNotPresent
+  
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  
+  # 集群配置
+  cluster:
+    name: "kubernetes"
+    apiUrl: "https://kubernetes.default.svc"
+
+# Web UI 配置
+webui:
+  enabled: true
+  replicas: 1
+  image:
+    repository: your-registry.com/kube-user-manager-webui
+    tag: "2.0.0"
+    pullPolicy: IfNotPresent
+  
+  service:
+    type: ClusterIP
+    port: 8080
+    targetPort: 8080
+  
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  
+  # 管理员账号配置
+  auth:
+    secretKey: "change-this-secret-key-in-production"
+    adminUsername: "admin"
+    adminPassword: "admin123"  # 生产环境请务必修改！
+
+# Ingress 配置
+ingress:
+  enabled: false
+  className: "nginx"
+  annotations: {}
+    # cert-manager.io/cluster-issuer: letsencrypt-prod
+  hosts:
+    - host: kube-user-manager.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+    # - secretName: kube-user-manager-tls
+    #   hosts:
+    #     - kube-user-manager.example.com
+
+# ServiceAccount
+serviceAccount:
+  create: true
+  name: "kube-user-manager"
+  annotations: {}
+
+# RBAC
+rbac:
+  create: true
+
+# 默认 ClusterRole
+defaultClusterRoles:
+  - name: view-only
+    description: "只读权限"
+    enabled: true
+    rules:
+      - apiGroups: [""]
+        resources: ["pods", "services", "endpoints", "configmaps"]
+        verbs: ["get", "list", "watch"]
+      - apiGroups: ["apps"]
+        resources: ["deployments", "daemonsets", "statefulsets", "replicasets"]
+        verbs: ["get", "list", "watch"]
+      - apiGroups: ["batch"]
+        resources: ["jobs", "cronjobs"]
+        verbs: ["get", "list", "watch"]
+
+# CRD 配置
+crds:
+  create: true
+
+# 命名空间
+namespace: kube-system
+
+# 节点选择器
+nodeSelector: {}
+
+# 容忍
+tolerations: []
+
+# 亲和性
+affinity: {}
+

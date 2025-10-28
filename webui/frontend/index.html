@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kube User Manager - 用户权限管理系统</title>
+    <link rel="stylesheet" href="https://unpkg.com/element-plus@2.4.4/dist/index.css">
+    <link rel="stylesheet" href="/assets/style.css">
+</head>
+<body>
+    <div id="app">
+        <el-container v-if="isLoggedIn" style="height: 100vh;">
+            <!-- 侧边栏 -->
+            <el-aside width="200px" style="background-color: #304156;">
+                <div style="padding: 20px; color: #fff; font-size: 18px; font-weight: bold; text-align: center; border-bottom: 1px solid #41505f;">
+                    用户管理系统
+                </div>
+                <el-menu
+                    :default-active="activeMenu"
+                    @select="handleMenuSelect"
+                    background-color="#304156"
+                    text-color="#bfcbd9"
+                    active-text-color="#409EFF"
+                    style="border: none;">
+                    <el-menu-item index="users">
+                        <el-icon><User /></el-icon>
+                        <span>用户管理</span>
+                    </el-menu-item>
+                    <el-menu-item index="roles">
+                        <el-icon><Lock /></el-icon>
+                        <span>角色管理</span>
+                    </el-menu-item>
+                </el-menu>
+            </el-aside>
+
+            <!-- 主内容区 -->
+            <el-container>
+                <!-- 顶部栏 -->
+                <el-header style="display: flex; justify-content: space-between; align-items: center; background-color: #fff; border-bottom: 1px solid #e6e6e6;">
+                    <h2 style="margin: 0;">{{ pageTitle }}</h2>
+                    <el-dropdown @command="handleCommand">
+                        <span style="cursor: pointer;">
+                            {{ username }} <el-icon><ArrowDown /></el-icon>
+                        </span>
+                        <template #dropdown>
+                            <el-dropdown-menu>
+                                <el-dropdown-item command="logout">退出登录</el-dropdown-item>
+                            </el-dropdown-menu>
+                        </template>
+                    </el-dropdown>
+                </el-header>
+
+                <!-- 主要内容 -->
+                <el-main>
+                    <!-- 用户管理页面 -->
+                    <div v-if="activeMenu === 'users'">
+                        <el-button type="primary" @click="showCreateUserDialog">
+                            <el-icon><Plus /></el-icon> 创建用户
+                        </el-button>
+                        
+                        <el-table :data="users" style="margin-top: 20px;" v-loading="loading">
+                            <el-table-column prop="metadata.name" label="用户名" width="200" />
+                            <el-table-column prop="metadata.namespace" label="命名空间" width="150" />
+                            <el-table-column label="权限" min-width="300">
+                                <template #default="scope">
+                                    <el-tag v-for="role in scope.row.spec.roles" :key="role.namespace + role.name" 
+                                            size="small" style="margin-right: 5px;">
+                                        {{ role.name }} @ {{ role.namespace }}
+                                    </el-tag>
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="操作" width="300" fixed="right">
+                                <template #default="scope">
+                                    <el-button size="small" @click="editUser(scope.row)">编辑</el-button>
+                                    <el-button size="small" @click="downloadKubeconfig(scope.row)">下载配置</el-button>
+                                    <el-button size="small" type="danger" @click="deleteUser(scope.row)">删除</el-button>
+                                </template>
+                            </el-table-column>
+                        </el-table>
+                    </div>
+
+                    <!-- 角色管理页面 -->
+                    <div v-if="activeMenu === 'roles'">
+                        <el-button type="primary" @click="showCreateRoleDialog">
+                            <el-icon><Plus /></el-icon> 创建角色
+                        </el-button>
+                        
+                        <el-table :data="clusterRoles" style="margin-top: 20px;" v-loading="loading">
+                            <el-table-column prop="name" label="角色名称" width="200" />
+                            <el-table-column label="描述" min-width="200">
+                                <template #default="scope">
+                                    {{ scope.row.labels.description || '-' }}
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="权限规则数" width="120">
+                                <template #default="scope">
+                                    {{ scope.row.rules.length }}
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="操作" width="200" fixed="right">
+                                <template #default="scope">
+                                    <el-button size="small" @click="viewRole(scope.row)">查看</el-button>
+                                    <el-button size="small" @click="editRole(scope.row)">编辑</el-button>
+                                    <el-button size="small" type="danger" @click="deleteRole(scope.row)">删除</el-button>
+                                </template>
+                            </el-table-column>
+                        </el-table>
+                    </div>
+                </el-main>
+            </el-container>
+        </el-container>
+
+        <!-- 登录页面 -->
+        <div v-else class="login-container">
+            <el-card class="login-card">
+                <h1 style="text-align: center; margin-bottom: 30px;">
+                    Kube User Manager
+                </h1>
+                <el-form :model="loginForm" @submit.prevent="handleLogin">
+                    <el-form-item>
+                        <el-input 
+                            v-model="loginForm.username" 
+                            placeholder="用户名"
+                            size="large">
+                            <template #prefix>
+                                <el-icon><User /></el-icon>
+                            </template>
+                        </el-input>
+                    </el-form-item>
+                    <el-form-item>
+                        <el-input 
+                            v-model="loginForm.password" 
+                            type="password" 
+                            placeholder="密码"
+                            size="large"
+                            @keyup.enter="handleLogin">
+                            <template #prefix>
+                                <el-icon><Lock /></el-icon>
+                            </template>
+                        </el-input>
+                    </el-form-item>
+                    <el-form-item>
+                        <el-button type="primary" style="width: 100%;" size="large" 
+                                   @click="handleLogin" :loading="loginLoading">
+                            登录
+                        </el-button>
+                    </el-form-item>
+                </el-form>
+            </el-card>
+        </div>
+
+        <!-- 创建/编辑用户对话框 -->
+        <el-dialog 
+            v-model="userDialogVisible" 
+            :title="userDialogTitle"
+            width="600px">
+            <el-form :model="userForm" label-width="100px">
+                <el-form-item label="用户名" v-if="!isEditMode">
+                    <el-input v-model="userForm.name" placeholder="example.user" />
+                </el-form-item>
+                <el-form-item label="命名空间" v-if="!isEditMode">
+                    <el-select v-model="userForm.namespace" placeholder="选择命名空间" style="width: 100%;">
+                        <el-option 
+                            v-for="ns in namespaces" 
+                            :key="ns" 
+                            :label="ns" 
+                            :value="ns" />
+                    </el-select>
+                </el-form-item>
+                <el-form-item label="权限配置">
+                    <el-button size="small" @click="addRole">添加权限</el-button>
+                    <div v-for="(role, index) in userForm.roles" :key="index" style="margin-top: 10px;">
+                        <el-row :gutter="10">
+                            <el-col :span="10">
+                                <el-select v-model="role.name" placeholder="选择角色">
+                                    <el-option 
+                                        v-for="r in clusterRoles" 
+                                        :key="r.name" 
+                                        :label="r.name" 
+                                        :value="r.name" />
+                                </el-select>
+                            </el-col>
+                            <el-col :span="10">
+                                <el-select v-model="role.namespace" placeholder="选择命名空间">
+                                    <el-option 
+                                        v-for="ns in namespaces" 
+                                        :key="ns" 
+                                        :label="ns" 
+                                        :value="ns" />
+                                </el-select>
+                            </el-col>
+                            <el-col :span="4">
+                                <el-button type="danger" size="small" @click="removeRole(index)">删除</el-button>
+                            </el-col>
+                        </el-row>
+                    </div>
+                </el-form-item>
+            </el-form>
+            <template #footer>
+                <el-button @click="userDialogVisible = false">取消</el-button>
+                <el-button type="primary" @click="saveUser">确定</el-button>
+            </template>
+        </el-dialog>
+
+        <!-- 创建/编辑角色对话框 -->
+        <el-dialog 
+            v-model="roleDialogVisible" 
+            :title="roleDialogTitle"
+            width="800px">
+            <el-form :model="roleForm" label-width="100px">
+                <el-form-item label="角色名称" v-if="!isEditRoleMode">
+                    <el-input v-model="roleForm.name" placeholder="my-custom-role" />
+                </el-form-item>
+                <el-form-item label="描述">
+                    <el-input v-model="roleForm.description" placeholder="角色描述" />
+                </el-form-item>
+                <el-form-item label="权限规则">
+                    <el-button size="small" @click="addRule">添加规则</el-button>
+                    <div v-for="(rule, index) in roleForm.rules" :key="index" style="margin-top: 15px; padding: 15px; border: 1px solid #dcdfe6; border-radius: 4px;">
+                        <el-row :gutter="10" style="margin-bottom: 10px;">
+                            <el-col :span="20"><strong>规则 {{ index + 1 }}</strong></el-col>
+                            <el-col :span="4">
+                                <el-button type="danger" size="small" @click="removeRule(index)">删除</el-button>
+                            </el-col>
+                        </el-row>
+                        <el-row :gutter="10" style="margin-bottom: 10px;">
+                            <el-col :span="24">
+                                <label>API Groups:</label>
+                                <el-select v-model="rule.apiGroups" multiple placeholder="选择 API Groups" style="width: 100%;">
+                                    <el-option label="Core (空)" value="" />
+                                    <el-option label="apps" value="apps" />
+                                    <el-option label="batch" value="batch" />
+                                    <el-option label="extensions" value="extensions" />
+                                    <el-option label="rbac.authorization.k8s.io" value="rbac.authorization.k8s.io" />
+                                    <el-option label="* (全部)" value="*" />
+                                </el-select>
+                            </el-col>
+                        </el-row>
+                        <el-row :gutter="10" style="margin-bottom: 10px;">
+                            <el-col :span="24">
+                                <label>Resources:</label>
+                                <el-select v-model="rule.resources" multiple placeholder="选择 Resources" style="width: 100%;">
+                                    <el-option label="pods" value="pods" />
+                                    <el-option label="services" value="services" />
+                                    <el-option label="deployments" value="deployments" />
+                                    <el-option label="configmaps" value="configmaps" />
+                                    <el-option label="secrets" value="secrets" />
+                                    <el-option label="* (全部)" value="*" />
+                                </el-select>
+                            </el-col>
+                        </el-row>
+                        <el-row :gutter="10">
+                            <el-col :span="24">
+                                <label>Verbs:</label>
+                                <el-select v-model="rule.verbs" multiple placeholder="选择 Verbs" style="width: 100%;">
+                                    <el-option label="get" value="get" />
+                                    <el-option label="list" value="list" />
+                                    <el-option label="watch" value="watch" />
+                                    <el-option label="create" value="create" />
+                                    <el-option label="update" value="update" />
+                                    <el-option label="patch" value="patch" />
+                                    <el-option label="delete" value="delete" />
+                                    <el-option label="* (全部)" value="*" />
+                                </el-select>
+                            </el-col>
+                        </el-row>
+                    </div>
+                </el-form-item>
+            </el-form>
+            <template #footer>
+                <el-button @click="roleDialogVisible = false">取消</el-button>
+                <el-button type="primary" @click="saveRole">确定</el-button>
+            </template>
+        </el-dialog>
+
+        <!-- 查看角色详情对话框 -->
+        <el-dialog v-model="roleViewDialogVisible" title="查看角色详情" width="800px">
+            <el-descriptions :column="1" border>
+                <el-descriptions-item label="角色名称">{{ viewingRole.name }}</el-descriptions-item>
+                <el-descriptions-item label="描述">{{ viewingRole.labels?.description || '-' }}</el-descriptions-item>
+                <el-descriptions-item label="创建时间">{{ viewingRole.creationTimestamp }}</el-descriptions-item>
+            </el-descriptions>
+            <h3 style="margin-top: 20px;">权限规则</h3>
+            <el-table :data="viewingRole.rules" border style="margin-top: 10px;">
+                <el-table-column label="API Groups" width="200">
+                    <template #default="scope">
+                        <el-tag v-for="(g, i) in scope.row.apiGroups" :key="i" size="small" style="margin: 2px;">
+                            {{ g || '(core)' }}
+                        </el-tag>
+                    </template>
+                </el-table-column>
+                <el-table-column label="Resources" width="200">
+                    <template #default="scope">
+                        <el-tag v-for="(r, i) in scope.row.resources" :key="i" size="small" style="margin: 2px;">
+                            {{ r }}
+                        </el-tag>
+                    </template>
+                </el-table-column>
+                <el-table-column label="Verbs">
+                    <template #default="scope">
+                        <el-tag v-for="(v, i) in scope.row.verbs" :key="i" size="small" type="success" style="margin: 2px;">
+                            {{ v }}
+                        </el-tag>
+                    </template>
+                </el-table-column>
+            </el-table>
+            <template #footer>
+                <el-button @click="roleViewDialogVisible = false">关闭</el-button>
+            </template>
+        </el-dialog>
+    </div>
+
+    <script src="https://unpkg.com/vue@3.3.11/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/element-plus@2.4.4/dist/index.full.js"></script>
+    <script src="https://unpkg.com/@element-plus/icons-vue@2.3.1/dist/index.iife.min.js"></script>
+    <script src="https://unpkg.com/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
+    <script src="/assets/app.js"></script>
+</body>
+</html>
+

@@ -1,0 +1,15 @@
+apiVersion: v2
+name: kube-user-manager
+description: Kubernetes 用户权限管理系统
+type: application
+version: 2.0.0
+appVersion: "2.0.0"
+keywords:
+  - kubernetes
+  - rbac
+  - user-management
+home: https://github.com/yourusername/kube-user-manage-operator
+maintainers:
+  - name: Your Name
+    email: your.email@example.com
+

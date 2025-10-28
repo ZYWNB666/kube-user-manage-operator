@@ -1,0 +1,15 @@
+{{- range .Values.defaultClusterRoles }}
+{{- if .enabled }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ .name }}
+  labels:
+    usermanager.osip.cc/managed: "true"
+    description: {{ .description | quote }}
+rules:
+  {{- toYaml .rules | nindent 2 }}
+{{- end }}
+{{- end }}
+
