@@ -116,7 +116,8 @@ class K8sClient:
         """列出所有 ClusterRole（包括系统内置角色）"""
         try:
             # 定义系统内置角色列表（不可编辑删除）
-            system_roles = ['admin', 'edit', 'view', 'cluster-admin', 'view-only']
+            # 只包含 Kubernetes 原生的系统角色
+            system_roles = ['admin', 'edit', 'view', 'cluster-admin']
             
             # 获取带标签的（用户创建的）
             label_selector = f"{settings.USER_MANAGER_LABEL}={settings.USER_MANAGER_LABEL_VALUE}"
