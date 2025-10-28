@@ -1,124 +1,424 @@
-Kube User Manage Operator
-==========================
+# Kube User Manage Operator
 
-Kube User Manage Operator 是一个基于 [Kopf](https://kopf.readthedocs.io/) 的 Kubernetes Operator，用于在集群内以声明式方式管理 Lens/开发者的访问账号和权限。通过自定义资源 `LensUser`，Operator 会自动完成 ServiceAccount 创建、角色绑定、长期 token Secret 生成，并把 kubeconfig 以 `LuConfig` CR 的形式输出，简化账号发放流程。
+> 基于 Kubernetes Operator 的声明式用户权限管理系统
 
-目录结构
---------
-- `image/`  
-  Operator 的源码、镜像构建文件以及模板资源。
-- `lens-user/`  
-  手动部署所需的 Kubernetes 清单（CRD、ClusterRole、Deployment、示例 CR 等）。
-- `create-kubeconfig/`  
-  本地辅助脚本，基于模板为指定 ServiceAccount 输出 kubeconfig。
+## 📖 项目介绍
 
-核心特性
---------
-- **自动注册 CRD**：Operator 启动时会确保 `lensuser.garena.com` 与 `luconfig.garena.com` 两个 CRD 已存在。
-- **账号生命周期管理**：监听 `LensUser` 创建/更新/删除事件，自动同步 ServiceAccount、RoleBinding 以及 `LuConfig`。
-- **Token 兼容性处理**：兼容 Kubernetes 1.24+ 及以上版本，若集群未自动生成长期 token Secret 会自动补齐并绑定。
-- **声明式 kubeconfig 输出**：为每个 `LensUser` 生成 `LuConfig` CR，包含 base64 CA、Bearer Token 等信息，便于外部系统消费。
-- **模板灵活复用**：所有 YAML 模板集中在 `image/template/`，方便按需扩展 `ClusterRole`、`RoleBinding` 等定义。
+Kube User Manage Operator 是一个基于 [Kopf](https://kopf.readthedocs.io/) 框架开发的 Kubernetes Operator，用于自动化管理集群用户访问权限。
 
-快速开始
---------
-1. **准备环境**
-   - Kubernetes 1.20+ 集群（若启用了 LegacyServiceAccountTokenNoAutoGeneration，需要允许手动创建 token Secret）。。
-   - 管理权限账号（用于部署 CRD/ClusterRole/Deployment）。
-   - `kubectl`、`docker`/`nerdctl` 等镜像构建工具。
+### 核心功能
 
-2. **部署基础资源**（可直接使用 `lens-user/` 目录提供的清单）：
-   ```powershell
+✅ **声明式管理**：通过 `LensUser` 自定义资源定义用户及权限  
+✅ **自动化创建**：自动创建 ServiceAccount、RoleBinding、Token Secret  
+✅ **Kubeconfig 生成**：自动生成 `LuConfig` CR，包含完整的 kubeconfig 配置  
+✅ **版本兼容**：支持 Kubernetes 1.20+，兼容 1.24+ 的 Token 策略  
+✅ **生命周期管理**：监听资源变更，自动同步权限配置
+
+### 工作原理
+
+```
+创建 LensUser CR
+      ↓
+Operator 监听事件
+      ↓
+自动创建 ServiceAccount
+      ↓
+创建多个 RoleBinding (多命名空间)
+      ↓
+创建长期 Token Secret (K8s 1.24+)
+      ↓
+生成 LuConfig CR (包含 kubeconfig)
+      ↓
+用户获取配置访问集群
+```
+
+### 目录结构
+
+```
+.
+├── image/                    # Operator 源码和镜像构建
+│   ├── main.py              # 核心业务逻辑
+│   ├── Dockerfile           # 容器镜像构建文件
+│   ├── requirements.txt     # Python 依赖
+│   ├── template/            # K8s 资源模板
+│   └── example/             # 部署示例配置
+├── lens-user/               # 部署清单文件
+│   ├── 01-lensuser-crd.yaml.yaml          # LensUser CRD
+│   ├── 02-lensuserconfig-crd.yaml         # LuConfig CRD
+│   ├── 03-sa.yaml                         # Operator ServiceAccount
+│   ├── 04-ClusterRoule-view-only.yaml     # 默认 ClusterRole
+│   ├── 05-ClusterRoleBinding.yaml         # Operator 权限绑定
+│   ├── 06-lensuser-deployment.yaml        # Operator 部署
+│   └── 07-example.yaml                    # 用户示例
+└── create-kubeconfig/       # 本地生成 kubeconfig 工具
+    └── create-kubeconfig.py
+```
+
+---
+
+## 🚀 部署方法
+
+### 前置条件
+
+- Kubernetes 1.20+ 集群
+- kubectl 已配置并可访问集群
+- 具有集群管理员权限
+- Docker 或其他容器镜像构建工具（用于构建镜像）
+
+### 第一步：部署基础资源
+
+按顺序部署 CRD 和 RBAC 资源：
+
+```bash
+# 1. 部署 LensUser CRD
    kubectl apply -f lens-user/01-lensuser-crd.yaml.yaml
+
+# 2. 部署 LuConfig CRD
    kubectl apply -f lens-user/02-lensuserconfig-crd.yaml
+
+# 3. 部署 Operator ServiceAccount
    kubectl apply -f lens-user/03-sa.yaml
+
+# 4. 部署默认 ClusterRole (view-only)
    kubectl apply -f lens-user/04-ClusterRoule-view-only.yaml
+
+# 5. 部署 Operator ClusterRoleBinding
    kubectl apply -f lens-user/05-ClusterRoleBinding.yaml
    ```
 
-3. **构建 Operator 镜像**：
-   ```powershell
-   docker build -t <your-registry>/kube-user-manage-operator:latest -f image/Dockerfile image
-   docker push <your-registry>/kube-user-manage-operator:latest
-   ```
+或者一键部署基础资源：
 
-4. **部署 Operator**：
-   - 修改 `image/example/deployment.yaml` 中的 `image`, `cluster_name`, `kube_api_url` 等环境变量。
-   - 应用部署：
-     ```powershell
-     kubectl apply -f image/example/deployment.yaml
-     ```
-   > 若需要多个副本运行，请确保 Kopf peering 的 RBAC 和网络访问正常。
+```bash
+kubectl apply -f lens-user/01-lensuser-crd.yaml.yaml \
+              -f lens-user/02-lensuserconfig-crd.yaml \
+              -f lens-user/03-sa.yaml \
+              -f lens-user/04-ClusterRoule-view-only.yaml \
+              -f lens-user/05-ClusterRoleBinding.yaml
+```
 
-5. **创建示例 LensUser**：
-   ```powershell
+### 第二步：构建并推送 Operator 镜像
+
+```bash
+# 构建镜像
+docker build -t your-registry.com/kube-user-manage-operator:v1.0.0 -f image/Dockerfile image/
+
+# 推送镜像到仓库
+docker push your-registry.com/kube-user-manage-operator:v1.0.0
+```
+
+> **提示**：如果使用私有镜像仓库，需要先创建 imagePullSecret
+
+### 第三步：配置并部署 Operator
+
+编辑 `lens-user/06-lensuser-deployment.yaml`，修改以下配置：
+
+```yaml
+env:
+  - name: cluster_name
+    value: "your-cluster-name"        # 改为你的集群名称
+  - name: kube_api_url
+    value: "https://your-api-server:6443"  # 改为你的 API Server 地址
+```
+
+然后部署 Operator：
+
+```bash
+kubectl apply -f lens-user/06-lensuser-deployment.yaml
+```
+
+### 第四步：验证部署
+
+检查 Operator 是否正常运行：
+
+```bash
+# 查看 Operator Pod 状态
+kubectl get pods -n kube-system -l app=kube-user-manage-operator
+
+# 查看 Operator 日志
+kubectl logs -n kube-system -l app=kube-user-manage-operator -f
+
+# 验证 CRD 是否创建成功
+kubectl get crd | grep garena.com
+```
+
+预期输出：
+```
+lensuser.garena.com    2024-01-01T00:00:00Z
+luconfig.garena.com    2024-01-01T00:00:00Z
+```
+
+---
+
+## 📝 使用方式
+
+### 创建用户账号
+
+#### 方式一：使用示例文件
+
+```bash
+# 应用示例配置
    kubectl apply -f lens-user/07-example.yaml
    ```
-   Operator 会自动创建 `kube-system` namespace 下的 ServiceAccount `test.user`、相关 RoleBinding，并生成 `LuConfig`：
-   ```powershell
-   kubectl get luconfig test.user -n kube-system -o yaml
-   ```
 
-环境变量与配置
---------------
-- `cluster_name`：写入 `LuConfig` 中 context 名称，通常使用集群别名。
-- `kube_api_url`：写入 kubeconfig 中的 API Server 地址。
-- 模板文件位于 `image/template/`，可根据企业需求扩展或替换：  
-  - `cluster-role.yaml`：默认 `view-only` 权限。  
-  - `rolebinding.yaml`：为每个 namespace 创建 `ClusterRole` 绑定。  
-  - `secret.yaml`、`kube-config.yaml`：定义 token Secret 与 `LuConfig` 输出格式。
+#### 方式二：自定义创建
 
-LensUser CR 示例
----------------
+创建一个 `my-user.yaml` 文件：
+
 ```yaml
 apiVersion: garena.com/v1
 kind: LensUser
 metadata:
-  name: test.user
+  name: john.doe              # 用户名
+  namespace: kube-system      # 建议使用 kube-system
+spec:
+  roles:
+    - name: admin             # ClusterRole 名称
+      namespace: default      # 授权的命名空间
+    - name: view-only         # ClusterRole 名称
+      namespace: production   # 授权的命名空间
+    - name: view-only
+      namespace: staging
+```
+
+应用配置：
+
+```bash
+kubectl apply -f my-user.yaml
+```
+
+### 查看创建的资源
+
+```bash
+# 查看 LensUser
+kubectl get lensuser -n kube-system
+
+# 查看生成的 ServiceAccount
+kubectl get sa john.doe -n kube-system
+
+# 查看 RoleBinding
+kubectl get rolebinding john.doe -n default
+kubectl get rolebinding john.doe -n production
+
+# 查看 Token Secret
+kubectl get secret john.doe-token -n kube-system
+```
+
+### 获取 Kubeconfig
+
+Operator 会自动生成 `LuConfig` CR，包含完整的 kubeconfig 信息：
+
+```bash
+# 查看 LuConfig
+kubectl get luconfig john.doe -n kube-system -o yaml
+
+# 提取 kubeconfig 内容
+kubectl get luconfig john.doe -n kube-system -o jsonpath='{.spec}' | yq eval -P - > john.doe-kubeconfig.yaml
+```
+
+或使用本地工具生成：
+
+```bash
+cd create-kubeconfig
+python create-kubeconfig.py john.doe 
+```
+
+生成的文件位于：`create-kubeconfig/output-kubeconfig/john.doe@cluster-name.yaml`
+
+### 更新用户权限
+
+编辑 LensUser 资源，修改 `spec.roles` 字段：
+
+```bash
+kubectl edit lensuser john.doe -n kube-system
+```
+
+或者修改 YAML 文件后重新应用：
+
+```bash
+kubectl apply -f my-user.yaml
+```
+
+Operator 会自动：
+- 新增权限：创建新的 RoleBinding
+- 删除权限：删除对应的 RoleBinding
+- 修改权限：更新 RoleBinding 配置
+
+### 删除用户账号
+
+```bash
+kubectl delete lensuser john.doe -n kube-system
+```
+
+Operator 会自动清理：
+- ServiceAccount
+- 所有 RoleBinding
+- Token Secret
+- LuConfig CR
+
+---
+
+## 🔧 配置说明
+
+### 环境变量
+
+| 变量名 | 说明 | 示例 |
+|--------|------|------|
+| `cluster_name` | 集群名称，用于生成 kubeconfig context | `production-cluster` |
+| `kube_api_url` | Kubernetes API Server 地址 | `https://10.0.0.1:6443` |
+
+### ClusterRole 说明
+
+项目默认提供 `view-only` ClusterRole，你可以使用任何已存在的 ClusterRole：
+
+- `admin`：完整命名空间管理权限
+- `edit`：编辑资源权限
+- `view`：只读权限
+- `view-only`：自定义只读权限（项目提供）
+
+自定义 ClusterRole：
+
+```yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: custom-role
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "services"]
+    verbs: ["get", "list", "watch"]
+```
+
+---
+
+## 🛠️ 本地开发
+
+### 安装依赖
+
+```bash
+  pip install -r image/requirements.txt
+  ```
+
+### 本地运行 Operator
+
+```bash
+# 设置环境变量
+export cluster_name=dev-cluster
+export kube_api_url=https://127.0.0.1:6443
+
+# 以开发模式运行
+kopf run --dev --namespace kube-system image/main.py
+```
+
+### 构建镜像
+
+```bash
+docker build -t kube-user-manage-operator:dev -f image/Dockerfile image/
+```
+
+---
+
+## ❓ 常见问题
+
+### Q1: Operator Pod 启动失败
+
+**解决方法**：
+```bash
+# 检查日志
+kubectl logs -n kube-system -l app=kube-user-manage-operator
+
+# 确认 RBAC 权限是否正确
+kubectl auth can-i create serviceaccounts --as=system:serviceaccount:kube-system:kube-user-manage-operator
+```
+
+### Q2: ServiceAccount 没有生成 Token Secret
+
+这是 Kubernetes 1.24+ 的正常行为，Operator 会自动创建永久 Token Secret。
+
+**验证**：
+```bash
+kubectl get secret <username>-token -n kube-system
+```
+
+### Q3: RoleBinding 创建失败
+
+**原因**：ClusterRole 不存在
+
+**解决方法**：
+```bash
+# 检查 ClusterRole 是否存在
+kubectl get clusterrole <role-name>
+
+# 如果不存在，创建对应的 ClusterRole
+kubectl apply -f lens-user/04-ClusterRoule-view-only.yaml
+```
+
+### Q4: 如何获取 API Server 地址
+
+```bash
+kubectl cluster-info | grep "Kubernetes control plane"
+```
+
+### Q5: 如何查看 Operator 版本
+
+```bash
+kubectl get deployment kube-user-manage-operator -n kube-system -o jsonpath='{.spec.template.spec.containers[0].image}'
+```
+
+---
+
+## 📋 完整示例
+
+以下是一个完整的用户创建流程示例：
+
+```bash
+# 1. 创建用户配置文件
+cat <<EOF > developer-user.yaml
+apiVersion: garena.com/v1
+kind: LensUser
+metadata:
+  name: developer
   namespace: kube-system
 spec:
   roles:
-    - name: admin
-      namespace: default
-    - name: view-only
-      namespace: kube-system
+    - name: edit
+      namespace: dev
+    - name: view
+      namespace: prod
+EOF
+
+# 2. 应用配置
+kubectl apply -f developer-user.yaml
+
+# 3. 等待资源创建（通常几秒钟）
+sleep 5
+
+# 4. 验证资源
+kubectl get lensuser developer -n kube-system
+kubectl get sa developer -n kube-system
+kubectl get rolebinding developer -n dev
+kubectl get rolebinding developer -n prod
+
+# 5. 获取 kubeconfig
+kubectl get luconfig developer -n kube-system -o yaml
+
+# 6. 导出为文件
+kubectl get luconfig developer -n kube-system -o jsonpath='{.spec}' | \
+  python -c "import sys, yaml; print(yaml.dump(yaml.safe_load(sys.stdin.read())))" > developer.kubeconfig
+
+# 7. 测试访问
+kubectl --kubeconfig=developer.kubeconfig get pods -n dev
 ```
-- `spec.roles` 为数组，`name` 对应 `ClusterRole` 名称，`namespace` 为 RoleBinding 创建位置。
-- CR 更新时，Operator 会自动新增/删除/替换对应的 RoleBinding。
 
-本地生成 kubeconfig
-------------------
-`create-kubeconfig/` 目录提供了一个简单脚本，可针对已有 ServiceAccount 生成 kubeconfig：
-```powershell
-cd create-kubeconfig
-python create-kubeconfig.py <service-account-name>
-```
-流程说明：
-1. 根据 `init-conf/init-secret.yaml` 模板创建 token Secret。
-2. 调用 `kubectl get secret` 获取 token，并填充 `init-conf/init-kubeconfig.yaml` 模板。
-3. 在终端打印 kubeconfig，并写入 `output-kubeconfig/<context>.yaml`。
+---
 
-开发与测试
-----------
-- 依赖见 `image/requirements.txt`，建议使用 Python 3.7+ 虚拟环境：
-  ```powershell
-  pip install -r image/requirements.txt
-  ```
-- 开发时可通过 `kopf run --dev --namespace kube-system image/main.py` 在本地连接集群调试。
-- 修改模板后记得更新镜像并重新部署。
+## 📚 更多资源
 
-常见问题
---------
-- **CRD 冲突**：Operator 启动会先读取现有 CRD，若已存在会记录日志并跳过创建。确保版本兼容即可。  
-- **ServiceAccount 未生成 token Secret**：对于 1.24+，Operator 会手动创建 `<sa>-token` Secret；若失败请检查 `kube-system` namespace 是否允许创建 `kubernetes.io/service-account-token` 类型 Secret。  
-- **RoleBinding 权限不足**：确保 `roleRef.name` 对应的 ClusterRole 已存在，如需自定义请更新模板或部署新的 ClusterRole。
+- [Kopf 官方文档](https://kopf.readthedocs.io/)
+- [Kubernetes Operator 最佳实践](https://kubernetes.io/docs/concepts/extend-kubernetes/operator/)
+- [RBAC 权限管理](https://kubernetes.io/docs/reference/access-authn-authz/rbac/)
 
-路线图
-------
-- 支持为不同角色绑定指定 `ClusterRole` 模板。
-- 提供 Helm Chart 简化部署流程。
-- 增加单元测试与 CI 发布流程。
+---
 
-许可证
-------
-目前尚未添加许可协议，请在对外发布前根据企业策略补充（例如 MIT、Apache-2.0 等）。
+## 📄 许可证
+
+**Apache-2.0**
