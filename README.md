@@ -481,8 +481,52 @@ kubectl --kubeconfig=developer.kubeconfig get pods -n dev
 
 ---
 
+## 🗑️ 卸载
+
+如需完全清理项目部署的所有资源：
+
+### 快速卸载
+
+```bash
+# Linux/Mac
+chmod +x cleanup.sh
+./cleanup.sh
+
+
+# 强制清理（跳过确认）
+./cleanup.sh --force --skip-confirm
+
+# 自定义 CRD 组名
+./cleanup.sh --crd-group your-domain.com
+```
+
+### 手动卸载
+
+```bash
+# 1. 删除所有用户资源
+kubectl delete lensuser --all -A
+kubectl delete luconfig --all -A
+
+# 2. 卸载 Helm
+helm uninstall kube-user-manager -n kube-system
+
+# 3. 删除 CRD
+kubectl delete crd lensuser.osip.cc
+kubectl delete crd luconfig.osip.cc
+
+# 4. 删除管理的角色
+kubectl delete clusterrole -l usermanager.osip.cc/managed=true
+```
+
+详细卸载指南请参考：[UNINSTALL.md](UNINSTALL.md)
+
+---
+
 ## 📚 更多资源
 
+- [安装部署文档](DEPLOYMENT.md)
+- [CRD 自定义说明](CRD_CUSTOMIZATION.md)
+- [完全卸载指南](UNINSTALL.md)
 - [Kopf 官方文档](https://kopf.readthedocs.io/)
 - [Kubernetes Operator 最佳实践](https://kubernetes.io/docs/concepts/extend-kubernetes/operator/)
 - [RBAC 权限管理](https://kubernetes.io/docs/reference/access-authn-authz/rbac/)
