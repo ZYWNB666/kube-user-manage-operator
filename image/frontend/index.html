@@ -84,10 +84,11 @@
                                     </el-tag>
                                 </template>
                             </el-table-column>
-                            <el-table-column label="操作" width="280" align="center">
+                            <el-table-column label="操作" width="360" align="center">
                                 <template #default="scope">
                                     <el-button size="small" @click="editUser(scope.row)">编辑</el-button>
                                     <el-button size="small" @click="previewKubeconfig(scope.row)">预览配置</el-button>
+                                    <el-button size="small" type="success" @click="downloadKubeconfigDirect(scope.row)">下载配置</el-button>
                                     <el-button size="small" type="danger" @click="deleteUser(scope.row)">删除</el-button>
                                 </template>
                             </el-table-column>

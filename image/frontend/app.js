@@ -314,6 +314,38 @@ const app = createApp({
             ElementPlus.ElMessage.success(`配置文件已下载为: ${filename}`);
         };
         
+        const downloadKubeconfigDirect = async (user) => {
+            try {
+                loading.value = true;
+                const data = await apiRequest(`${API_BASE}/lensusers/${user.metadata.name}/kubeconfig?namespace=${user.metadata.namespace}`);
+                const config = data.data;
+                
+                // 转换为 YAML 格式
+                const yamlContent = jsyaml.dump(config, { indent: 2 });
+                
+                // 从配置中获取 current-context 作为文件名
+                let filename = 'kubeconfig.yaml';
+                if (config && config['current-context']) {
+                    filename = `${config['current-context']}.yaml`;
+                }
+                
+                // 创建下载
+                const blob = new Blob([yamlContent], { type: 'application/x-yaml' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                a.click();
+                URL.revokeObjectURL(url);
+                
+                ElementPlus.ElMessage.success(`配置文件已下载为: ${filename}`);
+            } catch (error) {
+                ElementPlus.ElMessage.error(error.message || '下载 Kubeconfig 失败');
+            } finally {
+                loading.value = false;
+            }
+        };
+        
         const addRole = () => {
             const defaultNamespace = userForm.namespace || (namespaces.value && namespaces.value[0]) || '';
             userForm.roles.push({ name: '', namespace: defaultNamespace });
@@ -528,6 +560,7 @@ const app = createApp({
             deleteUser,
             previewKubeconfig,
             downloadKubeconfig,
+            downloadKubeconfigDirect,
             addRole,
             removeRole,
             showCreateRoleDialog,
