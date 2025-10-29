@@ -6,7 +6,7 @@ operator:
   replicas: 1
   image:
     repository: kaifa6599/kube-user-manage-operator
-    tag: "v1.0"
+    tag: "v1.19"
     pullPolicy: IfNotPresent
   
   resources:
@@ -20,16 +20,16 @@ operator:
   # 集群配置
   cluster:
     name: "kubernetes"
-    apiUrl: "https://kubernetes.default.svc"
+    apiUrl: "https://kubernetes.default.svc"  # 开放给开发人员使用的话需要填写可以连接的外网地址
   
   # CRD 配置（可自定义组名和版本）
   crd:
-    group: "osip.cc"
-    version: "v1"
+    group: "osip.cc"  # 可以填公司域名或者其他有意义的字段
+    version: "v1"     # 默认v1即可，这个关系不大
 
 # Web UI 配置
 webui:
-  enabled: true  # 保留此开关用于控制 Service 和 Ingress
+  enabled: true  # 保留此开关用于控制 Service 和 Ingress，开启就行了~
   
   service:
     type: ClusterIP
@@ -71,7 +71,7 @@ rbac:
 # 默认 ClusterRole
 defaultClusterRoles:
   - name: view-only
-    description: "只读权限"
+    description: "ReadOnly"
     enabled: true
     rules:
       - apiGroups: [""]
@@ -92,7 +92,7 @@ crds:
   create: true
 
 # 命名空间
-namespace: kube-system
+namespace: kube-system  # 为了不让开发人员看到一些权限配置，所以放在kube-system命名空间，所以不要给权限控制人员开放kube-system命名空间权限
 
 # 节点选择器
 nodeSelector: {}
