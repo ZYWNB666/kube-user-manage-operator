@@ -6,7 +6,7 @@ operator:
   replicas: 1
   image:
     repository: kaifa6599/kube-user-manage-operator
-    tag: "v1.19"
+    tag: "v1.20"
     pullPolicy: IfNotPresent
   
   resources:
@@ -75,13 +75,16 @@ defaultClusterRoles:
     enabled: true
     rules:
       - apiGroups: [""]
-        resources: ["pods", "services", "endpoints", "configmaps", "events", "namespaces", "nodes"]
+        resources: ["pods", "services", "endpoints", "configmaps", "events", "namespaces", "nodes", "persistentvolumeclaims", "secrets"]
         verbs: ["get", "list", "watch"]
       - apiGroups: ["apps"]
         resources: ["deployments", "daemonsets", "statefulsets", "replicasets"]
         verbs: ["get", "list", "watch"]
       - apiGroups: ["batch"]
         resources: ["jobs", "cronjobs"]
+        verbs: ["get", "list", "watch"]
+      - apiGroups: ["networking.k8s.io"]
+        resources: ["ingresses", "networkpolicies"]
         verbs: ["get", "list", "watch"]
       - apiGroups: ["events.k8s.io"]
         resources: ["events"]
