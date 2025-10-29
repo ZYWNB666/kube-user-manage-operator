@@ -1,3 +1,5 @@
+# 注意：apiVersion 应该使用您配置的 CRD_GROUP
+# 默认是 osip.cc/v1，如果自定义了 CRD_GROUP，请修改为 your-domain.com/v1
 apiVersion: osip.cc/v1
 kind: LensUser
 metadata:

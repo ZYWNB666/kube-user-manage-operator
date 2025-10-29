@@ -179,6 +179,8 @@ def create_lu(spec, name, namespace, logger, **kwargs):
     path = os.path.join(os.path.dirname(__file__), 'template/kube-config.yaml')
     tmpl = open(path, 'rt').read()
     kube_config = tmpl.format(
+        crd_group=CRD_GROUP,
+        crd_version=CRD_VERSION,
         user_name=name,
         namespace=namespace,
         cluster_name=os.getenv('cluster_name'),

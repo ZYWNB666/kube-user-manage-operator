@@ -6,7 +6,7 @@ kind: ClusterRole
 metadata:
   name: {{ .name }}
   labels:
-    usermanager.osip.cc/managed: "true"
+    usermanager.{{ $.Values.operator.crd.group }}/managed: "true"
   annotations:
     description: {{ .description | quote }}
 rules:

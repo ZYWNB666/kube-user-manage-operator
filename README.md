@@ -15,6 +15,7 @@ Kube User Manage Operator 是一个基于 [Kopf](https://kopf.readthedocs.io/) �
 ✅ **生命周期管理**：监听资源变更，自动同步权限配置  
 ✅ **Web 管理界面**：提供图形化界面管理用户和角色，支持账号密码登录  
 ✅ **标签过滤**：ClusterRole 通过标签管理，Web 界面只展示带有特定标签的角色  
+✅ **CRD 自定义**：支持自定义 CRD 组名和版本，适配企业域名规范  
 ✅ **Helm 部署**：标准化 Helm Chart，一键部署完整系统
 
 ### 工作原理
@@ -170,15 +171,19 @@ kubectl get pods -n kube-system -l app=kube-user-manage-operator
 # 查看 Operator 日志
 kubectl logs -n kube-system -l app=kube-user-manage-operator -f
 
-# 验证 CRD 是否创建成功
+# 验证 CRD 是否创建成功（默认组名是 osip.cc，如自定义请替换）
 kubectl get crd | grep osip.cc
+# 或者如果自定义了 CRD 组名：
+# kubectl get crd | grep your-domain.com
 ```
 
-预期输出：
+预期输出（默认配置）：
 ```
 lensuser.osip.cc    2024-01-01T00:00:00Z
 luconfig.osip.cc    2024-01-01T00:00:00Z
 ```
+
+> 💡 **提示**：支持自定义 CRD 组名，详见 [CRD_CUSTOMIZATION.md](CRD_CUSTOMIZATION.md)
 
 ---
 
@@ -208,7 +213,7 @@ luconfig.osip.cc    2024-01-01T00:00:00Z
    - 切换到"角色管理"标签
    - 点击"创建角色"创建自定义权限模板
    - 支持查看、编辑、删除角色
-   - 只显示带有 `usermanager.osip.cc/managed=true` 标签的角色
+   - 只显示带有 `usermanager.{CRD_GROUP}/managed=true` 标签的角色（默认是 `usermanager.osip.cc/managed=true`）
 
 ---
 
@@ -228,6 +233,7 @@ luconfig.osip.cc    2024-01-01T00:00:00Z
 创建一个 `my-user.yaml` 文件：
 
 ```yaml
+# 注意：apiVersion 默认是 osip.cc/v1，如果自定义了 CRD_GROUP，请修改为 your-domain.com/v1
 apiVersion: osip.cc/v1
 kind: LensUser
 metadata:
@@ -435,6 +441,7 @@ kubectl get deployment kube-user-manage-operator -n kube-system -o jsonpath='{.s
 
 ```bash
 # 1. 创建用户配置文件
+# 注意：apiVersion 默认是 osip.cc/v1，如自定义了 CRD_GROUP，请修改为 your-domain.com/v1
 cat <<EOF > developer-user.yaml
 apiVersion: osip.cc/v1
 kind: LensUser
