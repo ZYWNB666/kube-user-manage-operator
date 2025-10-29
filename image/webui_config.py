@@ -19,8 +19,15 @@ class Settings(BaseSettings):
     CLUSTER_NAME: str = os.getenv("cluster_name", "kubernetes")
     KUBE_API_URL: str = os.getenv("kube_api_url", "https://kubernetes.default.svc")
     
-    # UserManager 标签
-    USER_MANAGER_LABEL: str = "usermanager.osip.cc/managed"
+    # CRD 组名配置（可自定义）
+    CRD_GROUP: str = os.getenv("CRD_GROUP", "osip.cc")
+    CRD_VERSION: str = os.getenv("CRD_VERSION", "v1")
+    
+    # UserManager 标签（使用动态 CRD 组名）
+    @property
+    def USER_MANAGER_LABEL(self) -> str:
+        return f"usermanager.{self.CRD_GROUP}/managed"
+    
     USER_MANAGER_LABEL_VALUE: str = "true"
     
     # CORS 配置

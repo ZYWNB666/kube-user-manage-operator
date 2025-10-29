@@ -30,6 +30,10 @@ spec:
               value: {{ .Values.operator.cluster.name | quote }}
             - name: kube_api_url
               value: {{ .Values.operator.cluster.apiUrl | quote }}
+            - name: CRD_GROUP
+              value: {{ .Values.operator.crd.group | quote }}
+            - name: CRD_VERSION
+              value: {{ .Values.operator.crd.version | quote }}
             - name: SECRET_KEY
               value: {{ .Values.webui.auth.secretKey | quote }}
             - name: ADMIN_USERNAME

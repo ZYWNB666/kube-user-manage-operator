@@ -21,6 +21,11 @@ operator:
   cluster:
     name: "kubernetes"
     apiUrl: "https://kubernetes.default.svc"
+  
+  # CRD 配置（可自定义组名和版本）
+  crd:
+    group: "osip.cc"
+    version: "v1"
 
 # Web UI 配置
 webui:
@@ -70,13 +75,16 @@ defaultClusterRoles:
     enabled: true
     rules:
       - apiGroups: [""]
-        resources: ["pods", "services", "endpoints", "configmaps"]
+        resources: ["pods", "services", "endpoints", "configmaps", "events", "namespaces", "nodes"]
         verbs: ["get", "list", "watch"]
       - apiGroups: ["apps"]
         resources: ["deployments", "daemonsets", "statefulsets", "replicasets"]
         verbs: ["get", "list", "watch"]
       - apiGroups: ["batch"]
         resources: ["jobs", "cronjobs"]
+        verbs: ["get", "list", "watch"]
+      - apiGroups: ["events.k8s.io"]
+        resources: ["events"]
         verbs: ["get", "list", "watch"]
 
 # CRD 配置

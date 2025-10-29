@@ -7,6 +7,10 @@ import kubernetes
 import yaml
 from kubernetes.client.rest import ApiException
 
+# 获取 CRD 组名配置
+CRD_GROUP = os.getenv('CRD_GROUP', 'osip.cc')
+CRD_VERSION = os.getenv('CRD_VERSION', 'v1')
+
 '''
 启动的时候，自动应用CRD
 '''
@@ -21,9 +25,14 @@ def apply_crd(logger, settings, **kwargs):
     configuration = kubernetes.config.load_incluster_config()
     crds = ['template/crd.yaml', 'template/lu-config-crd.yaml']
     api = kubernetes.client.ApiextensionsV1Api(configuration)
+    
+    logger.info(f"Using CRD Group: {CRD_GROUP}, Version: {CRD_VERSION}")
+    
     for crd in crds:
         path = os.path.join(os.path.dirname(__file__), crd)
         text = open(path, 'rt').read()
+        # 替换模板中的 CRD 组名和版本
+        text = text.format(crd_group=CRD_GROUP, crd_version=CRD_VERSION)
         data = yaml.safe_load(text)
 
         try:
@@ -34,6 +43,7 @@ def apply_crd(logger, settings, **kwargs):
                 logger.info("%s\n" % e.body)
             else:
                 api.create_custom_resource_definition(body=data)
+                logger.info(f"CRD created: {data['metadata']['name']}")
 
     return {'crd_status': True}
 
@@ -43,7 +53,7 @@ def apply_crd(logger, settings, **kwargs):
 '''
 
 
-@kopf.on.create('lensuser', group='osip.cc', version='v1')
+@kopf.on.create('lensuser', group=CRD_GROUP, version=CRD_VERSION)
 def create_lu(spec, name, namespace, logger, **kwargs):
     roles = spec.get('roles')
     if not roles:
@@ -184,8 +194,8 @@ def create_lu(spec, name, namespace, logger, **kwargs):
     try:
         # 尝试读取现有的 LuConfig
         existing_luconfig = crd_api.get_namespaced_custom_object(
-            group='osip.cc',
-            version='v1',
+            group=CRD_GROUP,
+            version=CRD_VERSION,
             namespace=namespace,
             plural='luconfig',
             name=name
@@ -201,8 +211,8 @@ def create_lu(spec, name, namespace, logger, **kwargs):
         new_config['spec'] = yaml.safe_load(kube_config)['spec']
         
         crd_api.replace_namespaced_custom_object(
-            group='osip.cc',
-            version='v1',
+            group=CRD_GROUP,
+            version=CRD_VERSION,
             namespace=namespace,
             plural='luconfig',
             name=name,
@@ -214,8 +224,8 @@ def create_lu(spec, name, namespace, logger, **kwargs):
             # 不存在，则创建
             logger.info(f"LuConfig '{name}' does not exist, creating...")
             crd_api.create_namespaced_custom_object(
-                group='osip.cc',
-                version='v1',
+                group=CRD_GROUP,
+                version=CRD_VERSION,
                 namespace=namespace,
                 plural='luconfig',
                 body=yaml.safe_load(kube_config)
@@ -233,7 +243,7 @@ def create_lu(spec, name, namespace, logger, **kwargs):
 '''
 
 
-@kopf.on.field('lensuser', group='osip.cc', version='v1', field='spec.roles')
+@kopf.on.field('lensuser', group=CRD_GROUP, version=CRD_VERSION, field='spec.roles')
 def update_lu(diff, name, namespace, logger, **kwargs):
     for op, field, old, new in diff:
         if op != "change":
@@ -309,7 +319,7 @@ def update_lu(diff, name, namespace, logger, **kwargs):
     return {'sa-name': name}
 
 
-@kopf.on.delete('lensuser', group='osip.cc', version='v1')
+@kopf.on.delete('lensuser', group=CRD_GROUP, version=CRD_VERSION)
 def delete_lu(spec, name, namespace, logger, **kwargs):
     roles = spec.get('roles')
     if not roles:
@@ -328,8 +338,8 @@ def delete_lu(spec, name, namespace, logger, **kwargs):
     crd_api = kubernetes.client.CustomObjectsApi()
     try:
         crd_api.delete_namespaced_custom_object(
-            group='osip.cc',
-            version='v1',
+            group=CRD_GROUP,
+            version=CRD_VERSION,
             namespace=namespace,
             plural='luconfig',
             name=name

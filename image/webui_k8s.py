@@ -29,8 +29,8 @@ class K8sClient:
         """列出所有 LensUser"""
         try:
             result = self.custom_api.list_namespaced_custom_object(
-                group="osip.cc",
-                version="v1",
+                group=settings.CRD_GROUP,
+                version=settings.CRD_VERSION,
                 namespace=namespace,
                 plural="lensuser"
             )
@@ -44,8 +44,8 @@ class K8sClient:
         """获取单个 LensUser"""
         try:
             return self.custom_api.get_namespaced_custom_object(
-                group="osip.cc",
-                version="v1",
+                group=settings.CRD_GROUP,
+                version=settings.CRD_VERSION,
                 namespace=namespace,
                 plural="lensuser",
                 name=name
@@ -58,7 +58,7 @@ class K8sClient:
     def create_lensuser(self, name: str, roles: List[Dict], namespace: str = "kube-system") -> Dict:
         """创建 LensUser"""
         body = {
-            "apiVersion": "osip.cc/v1",
+            "apiVersion": f"{settings.CRD_GROUP}/{settings.CRD_VERSION}",
             "kind": "LensUser",
             "metadata": {
                 "name": name,
@@ -70,8 +70,8 @@ class K8sClient:
         }
         
         return self.custom_api.create_namespaced_custom_object(
-            group="osip.cc",
-            version="v1",
+            group=settings.CRD_GROUP,
+            version=settings.CRD_VERSION,
             namespace=namespace,
             plural="lensuser",
             body=body
@@ -89,7 +89,7 @@ class K8sClient:
             raise ApiException(status=400, reason="Existing LensUser missing resourceVersion, cannot update")
         
         body = {
-            "apiVersion": "osip.cc/v1",
+            "apiVersion": f"{settings.CRD_GROUP}/{settings.CRD_VERSION}",
             "kind": "LensUser",
             "metadata": {
                 "name": name,
@@ -102,8 +102,8 @@ class K8sClient:
         }
         
         return self.custom_api.replace_namespaced_custom_object(
-            group="osip.cc",
-            version="v1",
+            group=settings.CRD_GROUP,
+            version=settings.CRD_VERSION,
             namespace=namespace,
             plural="lensuser",
             name=name,
@@ -113,8 +113,8 @@ class K8sClient:
     def delete_lensuser(self, name: str, namespace: str = "kube-system") -> Dict:
         """删除 LensUser"""
         return self.custom_api.delete_namespaced_custom_object(
-            group="osip.cc",
-            version="v1",
+            group=settings.CRD_GROUP,
+            version=settings.CRD_VERSION,
             namespace=namespace,
             plural="lensuser",
             name=name
@@ -250,8 +250,8 @@ class K8sClient:
         """获取 LuConfig（包含 kubeconfig）"""
         try:
             return self.custom_api.get_namespaced_custom_object(
-                group="osip.cc",
-                version="v1",
+                group=settings.CRD_GROUP,
+                version=settings.CRD_VERSION,
                 namespace=namespace,
                 plural="luconfig",
                 name=name
