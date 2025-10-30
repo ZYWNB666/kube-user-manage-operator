@@ -5,7 +5,7 @@ operator:
   enabled: true
   replicas: 1
   image:
-    repository: kaifa6599/kube-user-manager-webui
+    repository: swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/kaifa6599/kube-user-manager-webui
     tag: "v1.20"
     pullPolicy: IfNotPresent
   
