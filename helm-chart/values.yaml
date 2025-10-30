@@ -5,7 +5,7 @@ operator:
   enabled: true
   replicas: 1
   image:
-    repository: kaifa6599/kube-user-manage-operator
+    repository: kaifa6599/kube-user-manager-webui
     tag: "v1.20"
     pullPolicy: IfNotPresent
   
